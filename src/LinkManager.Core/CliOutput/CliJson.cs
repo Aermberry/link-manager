@@ -59,29 +59,10 @@ public sealed record CliVersionData
     public required string Version { get; init; }
 }
 
-/// <summary>create 的结构化结果：新登记条目 + 即时健康状态。</summary>
-public sealed record CliCreateData
-{
-    [JsonPropertyName("source")]
-    public required string Source { get; init; }
-
-    [JsonPropertyName("target")]
-    public required string Target { get; init; }
-
-    [JsonPropertyName("type")]
-    public required string Type { get; init; }
-
-    [JsonPropertyName("note")]
-    public string Note { get; init; } = string.Empty;
-
-    [JsonPropertyName("status")]
-    public required string Status { get; init; }
-}
-
 /// <summary>错误明细：机器可读码 + 人可读中文消息。</summary>
 public sealed record CliError
 {
-    /// <summary>错误码：usage | execution_failed | registry_error（见 docs/cli-conventions.md）。</summary>
+    /// <summary>错误码：usage | execution_failed | registry_error | unknown_command（见 docs/cli-conventions.md）。</summary>
     [JsonPropertyName("code")]
     public required string Code { get; init; }
 
@@ -171,11 +152,11 @@ public static class CliJson
         };
     }
 
-    public static CliEnvelope<CliCreateData> Create(LinkEntry entry) => new()
+    public static CliEnvelope<CliLinkEntry> Create(LinkEntry entry) => new()
     {
         Ok = true,
         Command = "create",
-        Data = new CliCreateData
+        Data = new CliLinkEntry
         {
             Source = entry.Source,
             Target = entry.Target,

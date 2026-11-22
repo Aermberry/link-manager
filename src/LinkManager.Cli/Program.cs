@@ -1,14 +1,24 @@
 ﻿using LinkManager.Core;
 using LinkManager.Core.CliOutput;
+using LinkManager.Core.Health;
 using LinkManager.Core.Links;
 using LinkManager.Core.Registry;
 
 // 退出码约定（docs/cli-conventions.md）：0 成功；1 用户错误（用法/参数）；2 执行失败；
 // 3 登记表错误；4 仅 ls——成功但发现异常链接；64 未知命令。
 
-// 输出统一 UTF-8：重定向/管道下 Windows 默认跟随系统 OEM 码页（GBK），会导致
-// 中文备注/错误消息变成乱码字节流。agent 消费场景固定 UTF-8。
-try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch (IOException) { /* 极端宿主不支持时保持默认 */ }
+// 输出统一 UTF-8：重定向/管道下 Windows 默认跟随系统 OEM 码页（GBK），会把中文备注/
+// 错误消息变成乱码字节流。stdout 与 stderr 都要设置——文本模式失败消息走 stderr
+//（stderr 是 TextWriter 包装，编码经 Console.Error 派生，无需单独设置；stdout 的
+// OutputEncoding 设置在 Windows 上同时覆盖两者）。
+// 输出统一 UTF-8：重定向/管道下 Windows 默认跟随系统 OEM 码页（GBK），中文备注/错误
+// 消息会变成乱码字节流。仅设 Console.OutputEncoding 即可——stderr 的编码随 stdout
+// 派生（已实测：设置后 stderr 为 UTF-8，注释掉该行则变 GBK）。
+try
+{
+    Console.OutputEncoding = System.Text.Encoding.UTF8;
+}
+catch (IOException) { /* 极端宿主不支持时保持默认 */ }
 
 if (args.Length == 0)
 {
@@ -19,57 +29,11 @@ if (args.Length == 0)
 }
 
 var commandName = args[0];
+var options = CliArgParser.Parse(args);
 
-// --json 可出现在任意位置（含坏选项之后），先整体扫描，保证失败包络也是 JSON
-var json = args.Any(a => string.Equals(a, "--json", StringComparison.OrdinalIgnoreCase));
-
-// 全局选项解析（唯一一处）：--json（结构化输出）、--registry <root>（登记表根目录
-// 重定向，agent 沙箱用）。位置参数收集进 positional，供 create 等命令使用。
-string? registryRoot = null;
-var positional = new List<string>();
-var parseError = (string?)null;
-for (var i = 1; i < args.Length; i++)
+if (options.ParseError is not null)
 {
-    if (string.Equals(args[i], "--json", StringComparison.OrdinalIgnoreCase))
-    {
-        continue;
-    }
-
-    if (string.Equals(args[i], "--registry", StringComparison.OrdinalIgnoreCase))
-    {
-        if (i + 1 >= args.Length)
-        {
-            parseError = "--registry 需要一个根目录参数：--registry <根目录>";
-            break;
-        }
-
-        registryRoot = args[++i];
-        continue;
-    }
-
-    if (args[i].StartsWith("--registry=", StringComparison.OrdinalIgnoreCase))
-    {
-        registryRoot = args[i]["--registry=".Length..];
-        if (registryRoot.Length == 0)
-        {
-            parseError = "--registry 需要一个根目录参数：--registry <根目录>";
-        }
-
-        continue;
-    }
-
-    if (args[i].StartsWith("--"))
-    {
-        parseError = $"未知选项：{args[i]}（支持：--json, --registry <根目录>）";
-        break;
-    }
-
-    positional.Add(args[i]);
-}
-
-if (parseError is not null)
-{
-    return Fail(json, commandName, ExitCodes.UserError, parseError);
+    return Fail(options.Json, commandName, ExitCodes.UserError, options.ParseError);
 }
 
 try
@@ -77,38 +41,38 @@ try
     switch (commandName)
     {
         case "version":
-            return RunVersion(json);
+            return RunVersion(options.Json);
 
         case "ls":
-            return RunLs(json, registryRoot);
+            return RunLs(options.Json, options.RegistryRoot);
 
         case "create":
-            return RunCreate(positional, json, registryRoot);
+            return RunCreate(options.Positional, options.Json, options.RegistryRoot);
 
         case "help" or "--help" or "-h":
-            return RunHelp(json);
+            return RunHelp(options.Json);
 
         default:
-            return Fail(json, commandName, ExitCodes.UnknownCommand,
+            return Fail(options.Json, commandName, ExitCodes.UnknownCommand,
                 $"未知命令: {commandName}（可用：version, ls, create, help）");
     }
 }
 catch (RegistryCorruptException ex)
 {
-    return Fail(json, commandName, ExitCodes.RegistryError, ex.Message);
+    return Fail(options.Json, commandName, ExitCodes.RegistryError, ex.Message);
 }
 catch (RegistryIoException ex)
 {
-    return Fail(json, commandName, ExitCodes.RegistryError, ex.Message);
+    return Fail(options.Json, commandName, ExitCodes.RegistryError, ex.Message);
 }
 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
 {
     // 登记目录无法创建/读写（坏盘符、权限）等原始 IO 异常，归入登记表错误
-    return Fail(json, commandName, ExitCodes.RegistryError, $"登记表读写失败：{ex.Message}");
+    return Fail(options.Json, commandName, ExitCodes.RegistryError, $"登记表读写失败：{ex.Message}");
 }
 catch (LinkCreateException ex)
 {
-    return Fail(json, commandName, ExitCodes.ExecutionFailed, ex.Message);
+    return Fail(options.Json, commandName, ExitCodes.ExecutionFailed, ex.Message);
 }
 
 static int RunVersion(bool json)
@@ -131,40 +95,36 @@ static int RunLs(bool json, string? registryRoot)
     if (json)
     {
         Console.WriteLine(CliJson.Serialize(result));
+        return result.Data!.Registry.AbnormalCount > 0 ? ExitCodes.AbnormalLinks : ExitCodes.Success;
     }
-    else
+
+    if (registry.Entries.Count == 0)
     {
-        if (registry.Entries.Count == 0)
-        {
-            Console.WriteLine("（登记表为空——尚未登记任何链接）");
-            return ExitCodes.Success;
-        }
-
-        Console.WriteLine($"{"状态",-8}  {"源路径",-45} → {"目标路径",-45}  {"类型",-10}  备注");
-        foreach (var e in result.Data!.Entries)
-        {
-            Console.WriteLine($"{TextStatus(e.Status),-8}  {e.Source,-45} → {e.Target,-45}  {e.Type,-10}  {e.Note}");
-        }
+        Console.WriteLine("（登记表为空——尚未登记任何链接）");
+        return ExitCodes.Success;
     }
 
-    return result.Data!.Registry.AbnormalCount > 0 ? ExitCodes.AbnormalLinks : ExitCodes.Success;
+    Console.WriteLine($"{"状态",-8}  {"源路径",-45} → {"目标路径",-45}  {"类型",-10}  备注");
+    var abnormal = 0;
+    foreach (var e in registry.Entries)
+    {
+        var status = LinkHealth.Check(e.Source, e.Type);
+        if (status != LinkStatus.Ok)
+        {
+            abnormal++;
+        }
+
+        Console.WriteLine($"{status.ToChinese(),-8}  {e.Source,-45} → {e.Target,-45}  {e.Type,-10}  {e.Note}");
+    }
+
+    return abnormal > 0 ? ExitCodes.AbnormalLinks : ExitCodes.Success;
 }
 
-/// <summary>英文 JSON 状态值 → 中文表头显示（文本模式专用）。</summary>
-static string TextStatus(string jsonStatus) => jsonStatus switch
-{
-    "ok" => "正常",
-    "broken" => "断链",
-    "missing" => "链接缺失",
-    "disguised" => "伪装目录",
-    _ => "未知",
-};
-
-static int RunCreate(List<string> positional, bool json, string? registryRoot)
+static int RunCreate(IReadOnlyList<string> positional, bool json, string? registryRoot)
 {
     if (positional.Count < 2)
     {
-        return Fail(json, "create", ExitCodes.UserError, "用法：create <源路径> <目标路径> [备注] [--json]");
+        return Fail(json, "create", ExitCodes.UserError, "用法：create <源路径> <目标路径> [备注] [--json] [--registry <根目录>]");
     }
 
     var source = positional[0];
@@ -198,7 +158,7 @@ static int RunHelp(bool json)
                 new { name = "create", description = "创建 junction 并自动登记" },
                 new { name = "help", description = "打印本帮助" },
             },
-            options = new[] { "--json" },
+            options = new[] { "--json", "--registry <根目录>" },
         };
         Console.WriteLine(CliJson.Serialize(new CliEnvelope<object> { Ok = true, Command = "help", Data = data }));
         return ExitCodes.Success;
@@ -220,7 +180,7 @@ static int Fail(bool json, string command, int exitCode, string message)
 {
     if (json)
     {
-        Console.WriteLine(CliJson.Serialize(CliJson.Error(command, CodeFor(exitCode), message)));
+        Console.WriteLine(CliJson.Serialize(CliJson.Error(command, CliErrorCodes.For(exitCode), message)));
     }
     else
     {
@@ -229,15 +189,6 @@ static int Fail(bool json, string command, int exitCode, string message)
 
     return exitCode;
 }
-
-static string CodeFor(int exitCode) => exitCode switch
-{
-    ExitCodes.UserError => "usage",
-    ExitCodes.ExecutionFailed => "execution_failed",
-    ExitCodes.RegistryError => "registry_error",
-    ExitCodes.UnknownCommand => "unknown_command",
-    _ => "execution_failed",
-};
 
 /// <summary>退出码约定。唯一权威定义；文档在 docs/cli-conventions.md，改动须同步。</summary>
 internal static class ExitCodes
@@ -251,4 +202,91 @@ internal static class ExitCodes
     public const int AbnormalLinks = 4;
 
     public const int UnknownCommand = 64;
+}
+
+/// <summary>退出码 → JSON error.code 映射。与 ExitCodes / docs/cli-conventions.md 同步维护；
+/// 未列出的退出码按执行失败归类（Success/AbnormalLinks 不会进入失败出口）。</summary>
+internal static class CliErrorCodes
+{
+    public static string For(int exitCode) => exitCode switch
+    {
+        ExitCodes.UserError => "usage",
+        ExitCodes.ExecutionFailed => "execution_failed",
+        ExitCodes.RegistryError => "registry_error",
+        ExitCodes.UnknownCommand => "unknown_command",
+        _ => "execution_failed",
+    };
+}
+
+/// <summary>解析后的全局选项与位置参数。</summary>
+internal sealed record CliOptions
+{
+    public bool Json { get; init; }
+
+    /// <summary>--registry 指定的登记表根目录；未指定为 null（用默认 AppData）。</summary>
+    public string? RegistryRoot { get; init; }
+
+    public IReadOnlyList<string> Positional { get; init; } = [];
+
+    /// <summary>首个解析错误（未知选项、--registry 缺参）；无错误为 null。</summary>
+    public string? ParseError { get; init; }
+}
+
+/// <summary>全局选项解析（唯一一处）：--json（结构化输出）、--registry <root>（登记表根目录
+/// 重定向，agent 沙箱用）。独立成类以便单元测试（经 InternalsVisibleTo）。</summary>
+internal static class CliArgParser
+{
+    public static CliOptions Parse(string[] args)
+    {
+        // --json 可出现在任意位置（含坏选项之后），先整体扫描，保证失败包络也是 JSON
+        var json = args.Any(a => string.Equals(a, "--json", StringComparison.OrdinalIgnoreCase));
+
+        string? registryRoot = null;
+        var positional = new List<string>();
+        string? parseError = null;
+
+        for (var i = 1; i < args.Length; i++)
+        {
+            if (string.Equals(args[i], "--json", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (string.Equals(args[i], "--registry", StringComparison.OrdinalIgnoreCase))
+            {
+                // 下一个 token 是选项（以 -- 开头）或不存在：视为缺参，而不是吞掉它当路径
+                if (i + 1 >= args.Length || args[i + 1].StartsWith("--"))
+                {
+                    parseError = "--registry 需要一个根目录参数：--registry <根目录>";
+                    break;
+                }
+
+                registryRoot = args[++i];
+                continue;
+            }
+
+            if (args[i].StartsWith("--registry=", StringComparison.OrdinalIgnoreCase))
+            {
+                var value = args[i]["--registry=".Length..];
+                if (value.Length == 0)
+                {
+                    parseError = "--registry 需要一个根目录参数：--registry <根目录>";
+                    break;
+                }
+
+                registryRoot = value;
+                continue;
+            }
+
+            if (args[i].StartsWith("--"))
+            {
+                parseError = $"未知选项：{args[i]}（支持：--json, --registry <根目录>）";
+                break;
+            }
+
+            positional.Add(args[i]);
+        }
+
+        return new CliOptions { Json = json, RegistryRoot = registryRoot, Positional = positional, ParseError = parseError };
+    }
 }

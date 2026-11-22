@@ -14,9 +14,9 @@
 ## 通用选项
 
 - `--json` — 所有子命令支持。输出单行紧凑 JSON 到 **stdout**，可被 `jq` 直接解析；人类可读输出不变（仍走原格式）。
-- `--registry <根目录>`（或 `--registry=<根目录>`）— 把登记表重定向到 `<根目录>/link-manager/registry.json`。默认为用户 AppData。供 agent / 测试沙箱隔离用，可放在任意参数位置。
-- `--json` 可出现在任意参数位置（即使其余参数有误，失败时仍输出 JSON 包络而非纯文本）。
-- 未知命令 → 退出码 64；已知命令带未知选项 → 退出码 1（usage）。
+- `--registry <根目录>`（或 `--registry=<根目录>`）— 把登记表重定向到 `<根目录>/link-manager/registry.json`。默认为用户 AppData。供 agent / 测试沙箱隔离用，放在命令名之后的任意位置。
+- `--json` 可放在命令名之后的任意位置（即使其余参数有误，失败时仍输出 JSON 包络而非纯文本；命令名本身在第一位，全局选项不能放在它之前）。
+- 未知命令 → 退出码 64；已知命令带未知选项 → 退出码 1（usage）。选项错误优先于未知命令判定（命令名合法才进入未知选项检查——实际实现先解析选项，故 `foo --badopt` 退出 1）。
 - 无参数时打印一行版本 + 命令列表后立即退出（退出码 0），**不进入交互等待**。
 
 ## 退出码
@@ -45,7 +45,7 @@ agent 判读建议：先按退出码分支；`--json` 模式下再读 `.ok` 与 
 - 失败：`ok=false`、`command=<命令名>`、`error={code,message}`；**没有** `data` 字段。
 - `error.code` ∈ `usage | execution_failed | registry_error | unknown_command`（与退出码一一对应，见上表）。
 - 中文与反斜杠原样输出（不转 `\uXXXX`）；输出为单行，逐行读取安全。
-- stdout 编码固定 **UTF-8**（不随系统 OEM 码页变化）；Windows 重定向/管道下中文备注与错误消息均为合法 UTF-8。
+- stdout 编码固定 **UTF-8**（不随系统 OEM 码页变化）；Windows 重定向/管道下中文备注与错误消息均为合法 UTF-8。stderr（文本模式错误通道）同样固定 UTF-8。
 
 ### 各命令 data 形状
 
