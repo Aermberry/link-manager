@@ -1,3 +1,4 @@
+using System.Text;
 using LinkMgr.Core.Registry;
 
 namespace LinkMgr.Core.Links;
@@ -9,9 +10,7 @@ public sealed class LinkCreateException(string message) : Exception(message);
 public static class LinkCreator
 {
     /// <summary>在 target 处创建指向 source 的 junction 并登记。零特权需求。</summary>
-    /// <exception cref="LinkCreateException">护栏被违反：源不存在、目标非空、路径成环。</exception>
-    /// <exception cref="RegistryCorruptException">登记文件损坏。</exception>
-    /// <exception cref="RegistryIoException">登记文件读写失败。</exception>
+    /// <exception cref="LinkCreateException">护栏被违反、junction 创建失败或登记失败（已回滚）。</exception>
     public static LinkEntry CreateJunction(string source, string target, string note, string? registryRoot = null)
     {
         Validate(source, target);
@@ -27,12 +26,25 @@ public static class LinkCreator
             Note = note,
         };
 
-        var registry = LinkRegistry.Load(registryRoot);
-        registry.Add(entry);
-        registry.Save();
+        try
+        {
+            var registry = LinkRegistry.Load(registryRoot);
+            registry.Add(entry);
+            registry.Save();
+        }
+        catch (Exception)
+        {
+            // 登记失败回滚：删掉刚建的 junction，不留"已创建未登记"的孤儿链接
+            try { Directory.Delete(target); } catch (IOException) { }
+            throw;
+        }
 
         return entry;
     }
+
+    /// <summary>CLI/GUI 共用的创建成功消息。</summary>
+    public static string DescribeCreated(LinkEntry entry) =>
+        $"已创建 junction：{entry.Source} → {entry.Target}（已自动登记）";
 
     private static void Validate(string source, string target)
     {
@@ -69,27 +81,49 @@ public static class LinkCreator
     {
         if (Directory.Exists(target))
         {
-            // 目标存在且为空目录：先删掉再建 junction（空目录无数据风险）
+            // 目标存在且为空目录：先删掉再建 junction（Validate 已确认其为空，无数据风险）
             Directory.Delete(target);
         }
 
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(target))!);
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(target))!);
+        }
+        catch (IOException ex)
+        {
+            throw new LinkCreateException($"创建目标目录失败：{ex.Message}");
+        }
+
+        // 用 -EncodedCommand 传命令：路径内容不会破坏 PS 字符串，杜绝引号注入
+        var cmd = $"(New-Item -ItemType Junction -Path '{target}' -Target '{source}') | Out-Null";
+        var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(cmd));
 
         var psi = new System.Diagnostics.ProcessStartInfo(
             "powershell.exe",
-            $"-NoProfile -Command \"(New-Item -ItemType Junction -Path '{target}' -Target '{source}') | Out-Null\"")
+            $"-NoProfile -EncodedCommand {encoded}")
         {
             CreateNoWindow = true,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
         };
-        using var p = System.Diagnostics.Process.Start(psi)!;
-        p.WaitForExit(15000);
+        using var p = System.Diagnostics.Process.Start(psi)
+            ?? throw new LinkCreateException("无法启动 PowerShell 进程");
 
-        if (!Directory.Exists(target))
+        var stderr = p.StandardError.ReadToEnd();
+        var exited = p.WaitForExit(15000);
+        if (!exited)
         {
-            throw new LinkCreateException($"junction 创建失败（命令行工具返回非零或目标未出现）：{target} → {source}");
+            p.Kill();
+            throw new LinkCreateException($"junction 创建超时：{target} → {source}");
+        }
+
+        // 读取 stdout 排空缓冲区，避免大输出与 WaitForExit 死锁；失败时把真实原因带出来
+        _ = p.StandardOutput.ReadToEnd();
+
+        if (p.ExitCode != 0 || !Directory.Exists(target))
+        {
+            throw new LinkCreateException($"junction 创建失败：{target} → {source}。原因：{(p.ExitCode != 0 ? $"exit {p.ExitCode}；" : "")}{stderr}");
         }
     }
 

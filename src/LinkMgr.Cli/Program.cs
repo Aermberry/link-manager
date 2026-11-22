@@ -84,7 +84,6 @@ static int RunCreate(string[] args)
     var note = args.Length > 3 ? args[3] : "";
 
     var entry = LinkCreator.CreateJunction(source, target, note);
-    Console.WriteLine($"已创建 junction：{target} → {source}（链接 {entry.Source} → 真实 {entry.Target}）");
-    Console.WriteLine("已自动登记。可用 `ls` 查看。");
+    Console.WriteLine(LinkCreator.DescribeCreated(entry));
     return 0;
 }

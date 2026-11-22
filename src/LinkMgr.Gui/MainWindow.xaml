@@ -13,32 +13,35 @@
 
         <TextBlock Grid.Row="0" Text="已登记链接" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
 
-        <Grid Grid.Row="1" Margin="0,0,0,8">
+        <TextBlock Grid.Row="1" Text="创建 junction" FontWeight="SemiBold" Margin="0,0,0,4" />
+
+        <Grid Grid.Row="2" Margin="0,0,0,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="60" />
-                <ColumnDefinition Width="60" />
-                <ColumnDefinition Width="60" />
+                <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-            <TextBlock Grid.Column="0" Text="创建 junction" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="源：" VerticalAlignment="Center" Margin="0,0,4,0" />
+            <TextBox Grid.Row="0" Grid.Column="1" x:Name="SourcePathInput" Margin="0,0,12,0" />
+            <TextBlock Grid.Row="0" Grid.Column="2" Text="目标：" VerticalAlignment="Center" Margin="0,0,4,0" />
+            <TextBox Grid.Row="0" Grid.Column="3" x:Name="TargetPathInput" />
 
-            <TextBlock Grid.Column="1" Text="源：" VerticalAlignment="Center" Margin="0,0,4,0" />
-            <TextBox Grid.Column="2" x:Name="SourcePathInput" Margin="0,0,12,0" />
-            <TextBlock Grid.Column="3" Text="目标：" VerticalAlignment="Center" Margin="0,0,4,0" />
-            <TextBox Grid.Column="4" x:Name="TargetPathInput" Margin="0,0,0,0" />
-
-            <TextBlock Grid.Column="1" Grid.Row="1" Text="备注：" VerticalAlignment="Center" Margin="0,6,4,0" />
-            <TextBox Grid.Column="2" Grid.Row="1" Grid.ColumnSpan="4" x:Name="NoteInput" Margin="0,6,0,0" />
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="备注：" VerticalAlignment="Center" Margin="0,6,4,0" />
+            <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" x:Name="NoteInput" Margin="0,6,0,0" />
         </Grid>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,8">
             <Button x:Name="CreateButton" Content="创建" Padding="14,4" Margin="0,0,8,0" Click="CreateButton_Click" />
             <Button x:Name="RefreshButton" Content="刷新健康检查" Padding="10,4" />
         </StackPanel>
 
-        <ListView Grid.Row="3" x:Name="EntriesList">
+        <ListView Grid.Row="4" x:Name="EntriesList">
             <ListView.View>
                 <GridView>
                     <GridViewColumn Header="状态" Width="90">
@@ -56,7 +59,7 @@
             </ListView.View>
         </ListView>
 
-        <StatusBar Grid.Row="4">
+        <StatusBar Grid.Row="5">
             <StatusBarItem>
                 <TextBlock x:Name="StatusText" Text="就绪" />
             </StatusBarItem>

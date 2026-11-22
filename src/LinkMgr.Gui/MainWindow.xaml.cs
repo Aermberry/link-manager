@@ -52,7 +52,7 @@ public partial class MainWindow : Window
             TargetPathInput.Text = "";
             NoteInput.Text = "";
             LoadRegistry();
-            StatusText.Text = $"已创建 junction：{entry.Target} → {entry.Source}（已自动登记）";
+            StatusText.Text = LinkCreator.DescribeCreated(entry);
         }
         catch (LinkCreateException ex)
         {

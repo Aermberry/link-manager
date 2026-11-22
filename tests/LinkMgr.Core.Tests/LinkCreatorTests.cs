@@ -91,6 +91,21 @@ public class LinkCreatorTests : IDisposable
     }
 
     [Fact]
+    public void Create_rolls_back_junction_when_registry_is_corrupt()
+    {
+        var source = Path.Combine(_root, "src-rb");
+        var target = Path.Combine(_root, "dst-rb");
+        Directory.CreateDirectory(source);
+
+        // 登记文件损坏：Load 抛 RegistryCorruptException，junction 应被回滚删除
+        Directory.CreateDirectory(Path.Combine(_root, LinkRegistry.DefaultFolderName));
+        File.WriteAllText(Path.Combine(_root, LinkRegistry.DefaultFolderName, LinkRegistry.DefaultFileName), "{ not json");
+
+        Assert.Throws<RegistryCorruptException>(() => LinkCreator.CreateJunction(source, target, note: "", registryRoot: _root));
+        Assert.False(Directory.Exists(target));
+    }
+
+    [Fact]
     public void Create_rejects_target_nested_in_source()
     {
         // 防环：目标在源内部——junction 指向源，源内又含目标，必然成环
