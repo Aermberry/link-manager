@@ -11,7 +11,7 @@ v1 开发中。设计与工单见 GitHub Issues（spec #1，工单 #2–#20）�
 ## 架构
 
 - `LinkManager.Core` — 全部业务逻辑，无 UI 依赖
-- `LinkManager.Cli` — 命令行前端（agent 调用；无参数时进入交互向导）
+- `LinkManager.Cli` — 命令行前端（agent 调用；支持 `--json` 结构化输出，约定见 `docs/cli-conventions.md`）
 - `LinkManager.Gui` — WPF 桌面前端
 
 ## 构建
@@ -22,3 +22,11 @@ v1 开发中。设计与工单见 GitHub Issues（spec #1，工单 #2–#20）�
 dotnet build
 dotnet test
 ```
+
+## 发布（自包含单文件 exe）
+
+```sh
+dotnet publish src/LinkManager.Cli/LinkManager.Cli.csproj -c Release
+```
+
+产物：`src/LinkManager.Cli/bin/Release/net11.0/win-x64/publish/LinkManager.Cli.exe` —— 自包含单文件（运行时内嵌、压缩启用），无需安装 .NET，拷到任意 win-x64 机器即可双击或命令行运行。
