@@ -5,24 +5,36 @@
     <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0" Text="已登记链接" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
 
-        <ListView Grid.Row="1" x:Name="EntriesList">
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button x:Name="RefreshButton" Content="刷新健康检查" Padding="10,4" />
+        </StackPanel>
+
+        <ListView Grid.Row="2" x:Name="EntriesList">
             <ListView.View>
                 <GridView>
-                    <GridViewColumn Header="源路径" Width="280" DisplayMemberBinding="{Binding Source}" />
-                    <GridViewColumn Header="目标路径" Width="280" DisplayMemberBinding="{Binding Target}" />
+                    <GridViewColumn Header="状态" Width="90">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusBrush}" FontWeight="SemiBold" />
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="源路径" Width="260" DisplayMemberBinding="{Binding Source}" />
+                    <GridViewColumn Header="目标路径" Width="260" DisplayMemberBinding="{Binding Target}" />
                     <GridViewColumn Header="类型" Width="80" DisplayMemberBinding="{Binding Type}" />
-                    <GridViewColumn Header="备注" Width="240" DisplayMemberBinding="{Binding Note}" />
+                    <GridViewColumn Header="备注" Width="200" DisplayMemberBinding="{Binding Note}" />
                 </GridView>
             </ListView.View>
         </ListView>
 
-        <StatusBar Grid.Row="2">
+        <StatusBar Grid.Row="3">
             <StatusBarItem>
                 <TextBlock x:Name="StatusText" Text="就绪" />
             </StatusBarItem>

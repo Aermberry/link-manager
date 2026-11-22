@@ -1,4 +1,5 @@
 ﻿using LinkMgr.Core;
+using LinkMgr.Core.Health;
 using LinkMgr.Core.Registry;
 
 if (args.Length == 0)
@@ -45,11 +46,26 @@ static int RunLs()
         return 0;
     }
 
-    Console.WriteLine($"{"源路径",-45} → {"目标路径",-45}  {"类型",-10}  备注");
+    Console.WriteLine($"{"状态",-8}  {"源路径",-45} → {"目标路径",-45}  {"类型",-10}  备注");
+    var abnormal = 0;
     foreach (var e in registry.Entries)
     {
-        Console.WriteLine($"{e.Source,-45} → {e.Target,-45}  {e.Type,-10}  {e.Note}");
+        var status = LinkHealth.Check(e.Source, e.Type);
+        if (status != LinkStatus.Ok)
+        {
+            abnormal++;
+        }
+
+        var statusText = status switch
+        {
+            LinkStatus.Ok => "正常",
+            LinkStatus.Broken => "断链",
+            LinkStatus.Missing => "链接缺失",
+            LinkStatus.Disguised => "伪装目录",
+            _ => "未知",
+        };
+        Console.WriteLine($"{statusText,-8}  {e.Source,-45} → {e.Target,-45}  {e.Type,-10}  {e.Note}");
     }
 
-    return 0;
+    return abnormal > 0 ? 1 : 0;
 }
