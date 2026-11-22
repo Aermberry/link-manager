@@ -16,7 +16,7 @@ v1 开发中。设计与工单见 GitHub Issues（spec #1，工单 #2–#20）�
 
 ## 构建
 
-需要 .NET 10 SDK。
+需要 .NET 11 SDK（global.json 锁定 11.0.100；本机 SDK 经 dnvm 管理）。
 
 ```
 dotnet build
