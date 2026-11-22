@@ -56,15 +56,7 @@ static int RunLs()
             abnormal++;
         }
 
-        var statusText = status switch
-        {
-            LinkStatus.Ok => "正常",
-            LinkStatus.Broken => "断链",
-            LinkStatus.Missing => "链接缺失",
-            LinkStatus.Disguised => "伪装目录",
-            _ => "未知",
-        };
-        Console.WriteLine($"{statusText,-8}  {e.Source,-45} → {e.Target,-45}  {e.Type,-10}  {e.Note}");
+        Console.WriteLine($"{status.ToChinese(),-8}  {e.Source,-45} → {e.Target,-45}  {e.Type,-10}  {e.Note}");
     }
 
     return abnormal > 0 ? 1 : 0;

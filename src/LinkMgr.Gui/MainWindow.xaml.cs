@@ -17,23 +17,16 @@ public sealed class EntryRow
     public string Type => Entry.Type;
     public string Note => Entry.Note;
 
-    public string StatusText => Status switch
-    {
-        LinkStatus.Ok => "正常",
-        LinkStatus.Broken => "断链",
-        LinkStatus.Missing => "链接缺失",
-        LinkStatus.Disguised => "伪装目录",
-        _ => "未知",
-    };
+    public string StatusText => Status.ToChinese();
 
-    public Brush StatusBrush => Status switch
+    public Brush StatusBrush
     {
-        LinkStatus.Ok => Brushes.Green,
-        LinkStatus.Broken => Brushes.Red,
-        LinkStatus.Missing => Brushes.Orange,
-        LinkStatus.Disguised => Brushes.Gray,
-        _ => Brushes.Black,
-    };
+        get
+        {
+            var (r, g, b) = Status.ToRgb();
+            return new SolidColorBrush(Color.FromRgb(r, g, b));
+        }
+    }
 }
 
 public partial class MainWindow : Window
