@@ -245,7 +245,7 @@ Design: stable protocol in AGENTS.md; adaptive project memory in .agents/.
 
 ### Issue tracker
 
-Issues are tracked in GitHub Issues at `Aermberry/data_mover` (created from this repo). All create/read/label/close operations go through the `gh` CLI — see `docs/agents/issue-tracker.md`.
+Issues are tracked in GitHub Issues at `Aermberry/link-manager` (created from this repo). All create/read/label/close operations go through the `gh` CLI — see `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
