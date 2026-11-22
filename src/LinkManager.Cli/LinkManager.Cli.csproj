@@ -11,4 +11,17 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!--
+    发布配置（agent 体验 / issue #20）：`dotnet publish -c Release` 直接产出
+    自包含单文件 exe，无需装运行时，可拷走双击运行。发布产物在
+    bin/Release/net11.0/win-x64/publish/。构建说明见 README 与 docs/cli-conventions.md。
+  -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'LinkManager.Cli'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
 </Project>
