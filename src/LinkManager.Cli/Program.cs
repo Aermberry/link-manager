@@ -73,17 +73,31 @@ static int RunLs()
 
 static int RunCreate(string[] args)
 {
-    if (args.Length < 3)
+    var positional = args.Skip(1).Where(a => a != "--symlink").ToArray();
+    var useSymlink = args.Skip(1).Contains("--symlink");
+
+    if (positional.Length < 2)
     {
-        Console.Error.WriteLine("用法：create <源路径> <目标路径> [备注]");
+        Console.Error.WriteLine("用法：create <源路径> <目标路径> [备注] [--symlink]");
         return 2;
     }
 
-    var source = args[1];
-    var target = args[2];
-    var note = args.Length > 3 ? args[3] : "";
+    var source = positional[0];
+    var target = positional[1];
+    var note = positional.Length > 2 ? positional[2] : "";
 
-    var entry = LinkCreator.CreateJunction(source, target, note);
-    Console.WriteLine(LinkCreator.DescribeCreated(entry));
-    return 0;
+    try
+    {
+        var entry = useSymlink
+            ? LinkCreator.CreateSymlink(source, target, note)
+            : LinkCreator.CreateJunction(source, target, note);
+        Console.WriteLine(LinkCreator.DescribeCreated(entry));
+        return 0;
+    }
+    catch (InvalidOperationException ex)
+    {
+        // 开发者模式门槛：拒绝创建并给出中文指引（exit 2，用法/前置条件类错误）
+        Console.Error.WriteLine($"创建被拒绝：{ex.Message}");
+        return 2;
+    }
 }
