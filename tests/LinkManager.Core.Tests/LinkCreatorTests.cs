@@ -1,7 +1,7 @@
-using LinkMgr.Core.Links;
-using LinkMgr.Core.Registry;
+using LinkManager.Core.Links;
+using LinkManager.Core.Registry;
 
-namespace LinkMgr.Core.Tests;
+namespace LinkManager.Core.Tests;
 
 public class LinkCreatorTests : IDisposable
 {
@@ -9,7 +9,7 @@ public class LinkCreatorTests : IDisposable
 
     public LinkCreatorTests()
     {
-        _root = Path.Combine(Path.GetTempPath(), $"linkmgr-create-{Guid.NewGuid():N}");
+        _root = Path.Combine(Path.GetTempPath(), $"link-manager-create-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_root);
     }
 

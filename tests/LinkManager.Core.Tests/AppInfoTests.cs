@@ -1,4 +1,4 @@
-namespace LinkMgr.Core.Tests;
+namespace LinkManager.Core.Tests;
 
 public class AppInfoTests
 {

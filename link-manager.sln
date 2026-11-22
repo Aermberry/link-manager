@@ -5,15 +5,15 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinkMgr.Core", "src\LinkMgr.Core\LinkMgr.Core.csproj", "{E8821F5E-96DE-4F14-BE3B-A8D23A9ADEC1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinkManager.Core", "src\LinkManager.Core\LinkManager.Core.csproj", "{E8821F5E-96DE-4F14-BE3B-A8D23A9ADEC1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinkMgr.Cli", "src\LinkMgr.Cli\LinkMgr.Cli.csproj", "{8DD24F40-1F2A-4740-A1C4-38CC0E50F313}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinkManager.Cli", "src\LinkManager.Cli\LinkManager.Cli.csproj", "{8DD24F40-1F2A-4740-A1C4-38CC0E50F313}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinkMgr.Gui", "src\LinkMgr.Gui\LinkMgr.Gui.csproj", "{F4BFF3BA-A7B4-41F3-943D-27A47DF667BA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinkManager.Gui", "src\LinkManager.Gui\LinkManager.Gui.csproj", "{F4BFF3BA-A7B4-41F3-943D-27A47DF667BA}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinkMgr.Core.Tests", "tests\LinkMgr.Core.Tests\LinkMgr.Core.Tests.csproj", "{F1BC4A34-D7D5-4747-806B-FAFC94A123E4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinkManager.Core.Tests", "tests\LinkManager.Core.Tests\LinkManager.Core.Tests.csproj", "{F1BC4A34-D7D5-4747-806B-FAFC94A123E4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

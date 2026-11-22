@@ -1,6 +1,6 @@
 
 
-namespace LinkMgr.Core.Health;
+namespace LinkManager.Core.Health;
 
 /// <summary>链接状态的人类可读表示。Core 层统一，CLI 与 GUI 共用。</summary>
 public static class LinkStatusText

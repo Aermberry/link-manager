@@ -1,7 +1,7 @@
-using LinkMgr.Core;
-using LinkMgr.Core.Registry;
+using LinkManager.Core;
+using LinkManager.Core.Registry;
 
-namespace LinkMgr.Core.Tests;
+namespace LinkManager.Core.Tests;
 
 public class LinkRegistryTests : IDisposable
 {
@@ -9,7 +9,7 @@ public class LinkRegistryTests : IDisposable
 
     public LinkRegistryTests()
     {
-        _root = Path.Combine(Path.GetTempPath(), $"linkmgr-tests-{Guid.NewGuid():N}");
+        _root = Path.Combine(Path.GetTempPath(), $"link-manager-tests-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_root);
     }
 
@@ -63,7 +63,7 @@ public class LinkRegistryTests : IDisposable
     [Fact]
     public void Corrupt_registry_file_throws_a_Chinese_error_instead_of_crashing()
     {
-        var dir = Path.Combine(_root, "linkmgr");
+        var dir = Path.Combine(_root, "link-manager");
         Directory.CreateDirectory(dir);
         File.WriteAllText(Path.Combine(dir, "registry.json"), "{ 这不是 JSON !!");
 
@@ -76,7 +76,7 @@ public class LinkRegistryTests : IDisposable
     public void Default_root_points_at_the_user_appdata_directory()
     {
         var expectedRoot = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var expectedFile = Path.Combine(expectedRoot, "linkmgr", "registry.json");
+        var expectedFile = Path.Combine(expectedRoot, "link-manager", "registry.json");
 
         Assert.Equal(expectedFile, LinkRegistry.DefaultFilePath);
     }
@@ -92,8 +92,8 @@ public class LinkRegistryTests : IDisposable
     {
         var registry = LinkRegistry.Load(_root);
 
-        Assert.Equal(Path.Combine(_root, "linkmgr", "registry.json"), registry.FilePath);
-        Assert.Equal(Path.Combine(registry.RootDirectory, "linkmgr", "registry.json"), registry.FilePath);
+        Assert.Equal(Path.Combine(_root, "link-manager", "registry.json"), registry.FilePath);
+        Assert.Equal(Path.Combine(registry.RootDirectory, "link-manager", "registry.json"), registry.FilePath);
     }
 
     [Fact]
@@ -101,6 +101,6 @@ public class LinkRegistryTests : IDisposable
     {
         LinkRegistry.Load(_root);
 
-        Assert.True(File.Exists(Path.Combine(_root, "linkmgr", "registry.json")));
+        Assert.True(File.Exists(Path.Combine(_root, "link-manager", "registry.json")));
     }
 }

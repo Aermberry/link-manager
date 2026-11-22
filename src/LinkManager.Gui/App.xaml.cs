@@ -2,7 +2,7 @@
 using System.Data;
 using System.Windows;
 
-namespace LinkMgr.Gui;
+namespace LinkManager.Gui;
 
 /// <summary>
 /// Interaction logic for App.xaml

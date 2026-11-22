@@ -1,4 +1,4 @@
-namespace LinkMgr.Core.Registry;
+namespace LinkManager.Core.Registry;
 
 /// <summary>登记文件损坏（存在但无法解析）。</summary>
 public sealed class RegistryCorruptException(string message, Exception? inner = null)

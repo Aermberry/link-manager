@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Encodings.Web;
 using System.Text.Json.Serialization;
 
-namespace LinkMgr.Core.Registry;
+namespace LinkManager.Core.Registry;
 
 /// <summary>一条已登记的链接：源路径（链接所在处）与目标路径（真实数据所在处）。</summary>
 public sealed record LinkEntry
@@ -35,12 +35,12 @@ public sealed record RegistryFile
 }
 
 /// <summary>
-/// 登记表的加载/保存/增删查。存储位置：root 目录下 linkmgr/registry.json。
+/// 登记表的加载/保存/增删查。存储位置：root 目录下 link-manager/registry.json。
 /// 首次加载时若无文件则创建空表。
 /// </summary>
 public sealed class LinkRegistry
 {
-    public const string DefaultFolderName = "linkmgr";
+    public const string DefaultFolderName = "link-manager";
     public const string DefaultFileName = "registry.json";
 
     /// <summary>默认登记文件完整路径（不触发创建）。产品默认根为用户 AppData 目录。</summary>

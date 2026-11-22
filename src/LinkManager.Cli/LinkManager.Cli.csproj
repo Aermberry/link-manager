@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\LinkMgr.Core\LinkMgr.Core.csproj" />
+    <ProjectReference Include="..\LinkManager.Core\LinkManager.Core.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

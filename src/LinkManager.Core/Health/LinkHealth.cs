@@ -1,4 +1,4 @@
-namespace LinkMgr.Core.Health;
+namespace LinkManager.Core.Health;
 
 /// <summary>链接健康状态。</summary>
 public enum LinkStatus

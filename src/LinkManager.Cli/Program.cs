@@ -1,7 +1,7 @@
-﻿using LinkMgr.Core;
-using LinkMgr.Core.Health;
-using LinkMgr.Core.Links;
-using LinkMgr.Core.Registry;
+﻿using LinkManager.Core;
+using LinkManager.Core.Health;
+using LinkManager.Core.Links;
+using LinkManager.Core.Registry;
 
 if (args.Length == 0)
 {

@@ -1,8 +1,8 @@
-using LinkMgr.Core;
-using LinkMgr.Core.Health;
-using LinkMgr.Core.Registry;
+using LinkManager.Core;
+using LinkManager.Core.Health;
+using LinkManager.Core.Registry;
 
-namespace LinkMgr.Core.Tests;
+namespace LinkManager.Core.Tests;
 
 public class LinkHealthTests : IDisposable
 {
@@ -10,7 +10,7 @@ public class LinkHealthTests : IDisposable
 
     public LinkHealthTests()
     {
-        _root = Path.Combine(Path.GetTempPath(), $"linkmgr-health-{Guid.NewGuid():N}");
+        _root = Path.Combine(Path.GetTempPath(), $"link-manager-health-{Guid.NewGuid():N}");
         Directory.CreateDirectory(_root);
     }
 

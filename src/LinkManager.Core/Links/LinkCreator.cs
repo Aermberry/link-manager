@@ -1,7 +1,7 @@
 using System.Text;
-using LinkMgr.Core.Registry;
+using LinkManager.Core.Registry;
 
-namespace LinkMgr.Core.Links;
+namespace LinkManager.Core.Links;
 
 /// <summary>创建链接的护栏被违反（源不存在、目标非空、路径成环等）。</summary>
 public sealed class LinkCreateException(string message) : Exception(message);

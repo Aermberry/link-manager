@@ -1,11 +1,11 @@
 ﻿using System.IO;
 using System.Windows;
 using System.Windows.Media;
-using LinkMgr.Core.Health;
-using LinkMgr.Core.Links;
-using LinkMgr.Core.Registry;
+using LinkManager.Core.Health;
+using LinkManager.Core.Links;
+using LinkManager.Core.Registry;
 
-namespace LinkMgr.Gui;
+namespace LinkManager.Gui;
 
 /// <summary>列表行视图模型：登记条目 + 健康状态。</summary>
 public sealed class EntryRow

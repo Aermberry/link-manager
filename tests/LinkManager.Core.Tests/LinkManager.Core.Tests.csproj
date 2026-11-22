@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\LinkMgr.Core\LinkMgr.Core.csproj" />
+    <ProjectReference Include="..\..\src\LinkManager.Core\LinkManager.Core.csproj" />
   </ItemGroup>
 
 </Project>
