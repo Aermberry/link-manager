@@ -155,6 +155,10 @@ public sealed class LinkRegistry
     public bool ContainsEntry(string source) =>
         _entries.Any(e => MatchesSource(e, source));
 
+    /// <summary>按源路径查找条目（大小写与分隔符方向不敏感，同 ContainsEntry）；无则 null。</summary>
+    public LinkEntry? FindEntry(string source) =>
+        _entries.FirstOrDefault(e => MatchesSource(e, source));
+
     /// <summary>更新指定源路径条目的备注；返回是否找到并更新。备注可为空串（清除）。</summary>
     public bool UpdateNote(string source, string note)
     {

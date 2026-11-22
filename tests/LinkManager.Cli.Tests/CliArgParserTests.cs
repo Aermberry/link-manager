@@ -142,3 +142,99 @@ public class ExitCodeContractTests
         Assert.Equal("execution_failed", CliErrorCodes.For(42));
     }
 }
+
+/// <summary>子命令自有选项回归（T10 解析器收紧时曾拒绝 T6/T8/T9/T5 的自有标志）：
+/// 全局解析器必须放行已知子命令的自有选项，交由命令自解析。</summary>
+public class CommandFlagParserTests
+{
+    [Theory]
+    [InlineData("create", "--symlink")]
+    [InlineData("migrate", "--execute")]
+    [InlineData("remove", "--keep-link")]
+    [InlineData("remove", "--delete-link")]
+    [InlineData("remove", "--yes")]
+    [InlineData("scan", "--yes")]
+    public void Known_command_flags_pass_the_global_gate(string command, string flag)
+    {
+        var o = CliArgParser.Parse(new[] { command, flag, "--json" });
+
+        Assert.Null(o.ParseError);
+        Assert.True(o.Json);
+    }
+
+    [Fact]
+    public void Valued_command_flag_takes_space_form_value()
+    {
+        var o = CliArgParser.Parse(new[] { "scan", "--max-depth", "3", @"C:\dir" });
+
+        Assert.Null(o.ParseError);
+        Assert.Equal("3", o.CommandFlagValues["--max-depth"]);
+        Assert.Equal(new[] { @"C:\dir" }, o.Positional);
+    }
+
+    [Fact]
+    public void Valued_command_flag_takes_equals_form_value()
+    {
+        var o = CliArgParser.Parse(new[] { "scan", "--max-depth=2" });
+
+        Assert.Null(o.ParseError);
+        Assert.Equal("2", o.CommandFlagValues["--max-depth"]);
+        Assert.Empty(o.Positional);
+    }
+
+    [Fact]
+    public void Valued_command_flag_with_missing_value_is_a_parse_error()
+    {
+        var o = CliArgParser.Parse(new[] { "scan", "--max-depth" });
+
+        Assert.NotNull(o.ParseError);
+        Assert.Contains("--max-depth", o.ParseError);
+    }
+
+    [Fact]
+    public void Valued_command_flag_does_not_swallow_a_following_option()
+    {
+        var o = CliArgParser.Parse(new[] { "scan", "--max-depth", "--yes" });
+
+        Assert.NotNull(o.ParseError);
+        Assert.False(o.CommandFlagValues.ContainsKey("--max-depth"));
+    }
+
+    [Fact]
+    public void Unknown_option_on_unknown_command_still_errors()
+    {
+        // 命令不在已知列表时自有选项表不生效——未知命令优先报错（exit 64 由调用方判定）
+        var o = CliArgParser.Parse(new[] { "frobnicate", "--yes" });
+
+        Assert.NotNull(o.ParseError);
+        Assert.Contains("--yes", o.ParseError);
+    }
+
+    [Fact]
+    public void Unknown_flag_on_known_command_still_errors()
+    {
+        var o = CliArgParser.Parse(new[] { "scan", "--bogus" });
+
+        Assert.NotNull(o.ParseError);
+        Assert.Contains("--bogus", o.ParseError);
+    }
+
+    [Fact]
+    public void Registry_still_parses_when_interleaved_with_command_flags()
+    {
+        var o = CliArgParser.Parse(new[] { "scan", "--registry", @"E:\sb", @"C:\dir", "--yes" });
+
+        Assert.Equal(@"E:\sb", o.RegistryRoot);
+        Assert.Equal(new[] { @"C:\dir" }, o.Positional);
+        Assert.Null(o.ParseError);
+    }
+
+    [Fact]
+    public void Option_error_precedes_unknown_command_as_documented()
+    {
+        // 文档约定：实际先解析选项，foo --badopt 退出 1（usage）而非 64
+        var o = CliArgParser.Parse(new[] { "foo", "--badopt" });
+
+        Assert.Contains("--badopt", o.ParseError);
+    }
+}

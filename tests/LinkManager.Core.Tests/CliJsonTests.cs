@@ -1,6 +1,7 @@
 using System.Text.Json;
 using LinkManager.Core.CliOutput;
 using LinkManager.Core.Registry;
+using LinkManager.Core.Scan;
 
 namespace LinkManager.Core.Tests;
 
@@ -137,5 +138,56 @@ public class CliJsonTests : IDisposable
         Assert.Equal(@"F:\No\Such\Real", data.GetProperty("target").GetString());
         Assert.Equal("junction", data.GetProperty("type").GetString());
         Assert.Equal("missing", data.GetProperty("status").GetString());
+    }
+}
+
+/// <summary>scan 命令 --json 输出契约：候选列表 + 汇总统计，jq 可解析（issue #15）。</summary>
+public class CliJsonScanTests : IDisposable
+{
+    private readonly string _root;
+
+    public CliJsonScanTests()
+    {
+        _root = Path.Combine(Path.GetTempPath(), $"link-manager-clijsonscan-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_root);
+    }
+
+    public void Dispose()
+    {
+        try { Directory.Delete(_root, recursive: true); } catch (IOException) { }
+    }
+
+    [Fact]
+    public void Scan_envelope_carries_candidates_and_summary()
+    {
+        var result = new ScanResult
+        {
+            Links =
+            [
+                new ScannedLink { Source = @"C:\链接处", Target = @"F:\真实目录", Type = "junction" },
+            ],
+            Skipped = [@"C:\locked"],
+            RegisteredCount = 2,
+            ScannedDirectoryCount = 7,
+        };
+
+        var json = CliJson.Serialize(CliJson.Scan(result, "scan"));
+
+        var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        Assert.True(root.GetProperty("ok").GetBoolean());
+        Assert.Equal("scan", root.GetProperty("command").GetString());
+        var data = root.GetProperty("data");
+        var link = Assert.Single(data.GetProperty("links").EnumerateArray());
+        Assert.Equal(@"C:\链接处", link.GetProperty("source").GetString());
+        Assert.Equal(@"F:\真实目录", link.GetProperty("target").GetString());
+        Assert.Equal("junction", link.GetProperty("type").GetString());
+        Assert.Equal(1, data.GetProperty("summary").GetProperty("candidateCount").GetInt32());
+        Assert.Equal(1, data.GetProperty("summary").GetProperty("skippedCount").GetInt32());
+        Assert.Equal(2, data.GetProperty("summary").GetProperty("registeredCount").GetInt32());
+        Assert.Equal(7, data.GetProperty("summary").GetProperty("scannedDirectoryCount").GetInt32());
+        Assert.Equal(@"C:\locked", Assert.Single(data.GetProperty("skipped").EnumerateArray()).GetString());
+        // 单行紧凑输出（jq 逐行读取约定）
+        Assert.DoesNotContain('\n', json);
     }
 }

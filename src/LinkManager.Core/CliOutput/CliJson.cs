@@ -2,7 +2,9 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LinkManager.Core.Health;
+using LinkManager.Core.Migration;
 using LinkManager.Core.Registry;
+using LinkManager.Core.Scan;
 
 namespace LinkManager.Core.CliOutput;
 
@@ -57,6 +59,89 @@ public sealed record CliVersionData
 
     [JsonPropertyName("version")]
     public required string Version { get; init; }
+}
+
+/// <summary>scan 的结构化结果：候选链接、跳过目录与汇总统计。</summary>
+public sealed record CliScanData
+{
+    [JsonPropertyName("links")]
+    public IReadOnlyList<ScannedLink> Links { get; init; } = [];
+
+    [JsonPropertyName("skipped")]
+    public IReadOnlyList<string> Skipped { get; init; } = [];
+
+    [JsonPropertyName("summary")]
+    public required CliScanSummary Summary { get; init; }
+}
+
+/// <summary>scan 的汇总统计。</summary>
+public sealed record CliScanSummary
+{
+    [JsonPropertyName("candidateCount")]
+    public int CandidateCount { get; init; }
+
+    [JsonPropertyName("skippedCount")]
+    public int SkippedCount { get; init; }
+
+    [JsonPropertyName("registeredCount")]
+    public int RegisteredCount { get; init; }
+
+    [JsonPropertyName("scannedDirectoryCount")]
+    public int ScannedDirectoryCount { get; init; }
+
+    /// <summary>本次实际导入登记的条数（纯扫描/降级报告时为 0）。</summary>
+    [JsonPropertyName("importedCount")]
+    public int ImportedCount { get; init; }
+}
+
+/// <summary>migrate 的结构化结果：源/目标/计划步骤/阻碍进程/executed 标志（dry-run 与执行共用形状）。</summary>
+public sealed record CliMigrateData
+{
+    [JsonPropertyName("source")]
+    public required string Source { get; init; }
+
+    [JsonPropertyName("target")]
+    public required string Target { get; init; }
+
+    [JsonPropertyName("steps")]
+    public IReadOnlyList<string> Steps { get; init; } = [];
+
+    [JsonPropertyName("runningProcesses")]
+    public IReadOnlyList<string> RunningProcesses { get; init; } = [];
+
+    /// <summary>false = dry-run（未改动文件系统）；true = 已执行迁移。</summary>
+    [JsonPropertyName("executed")]
+    public bool Executed { get; init; }
+
+    public static CliMigrateData Of(MigrationPlan plan, bool execute) => new()
+    {
+        Source = plan.Source,
+        Target = plan.Target,
+        Steps = plan.Steps,
+        RunningProcesses = [.. plan.RunningProcesses.Select(p => p.Name)],
+        Executed = execute,
+    };
+}
+
+/// <summary>config 的结构化结果：当前生效的登记文件位置；customRegistryFilePath 为用户自定义路径（无则 null）。</summary>
+public sealed record CliConfigData
+{
+    [JsonPropertyName("registryFilePath")]
+    public required string RegistryFilePath { get; init; }
+
+    [JsonPropertyName("customRegistryFilePath")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CustomRegistryFilePath { get; init; }
+}
+
+/// <summary>remove 的结构化结果：被移除的登记源路径；keepLink=true 表示仅删登记、链接保留。</summary>
+public sealed record CliRemoveData
+{
+    [JsonPropertyName("source")]
+    public required string Source { get; init; }
+
+    [JsonPropertyName("keepLink")]
+    public bool KeepLink { get; init; }
 }
 
 /// <summary>错误明细：机器可读码 + 人可读中文消息。</summary>
@@ -164,6 +249,59 @@ public static class CliJson
             Note = entry.Note,
             Status = LinkHealth.Check(entry.Source, entry.Type).ToJsonText(),
         },
+    };
+
+    /// <summary>scan 的结构化结果：候选列表 + 跳过目录 + 汇总统计（issue #15）。</summary>
+    public static CliEnvelope<CliScanData> Scan(ScanResult result, string command = "scan") => new()
+    {
+        Ok = true,
+        Command = command,
+        Data = new CliScanData
+        {
+            Links = [.. result.Links],
+            Skipped = [.. result.Skipped],
+            Summary = new CliScanSummary
+            {
+                CandidateCount = result.Links.Count,
+                SkippedCount = result.Skipped.Count,
+                RegisteredCount = result.RegisteredCount,
+                ScannedDirectoryCount = result.ScannedDirectoryCount,
+            },
+        },
+    };
+
+    /// <summary>migrate dry-run 的结构化结果：计划要点与阻碍（报告全文在文本模式）。
+    /// ok 恒为 true——dry-run 本身成功完成；阻碍与拒绝语义由退出码（2）与 runningProcesses 表达，
+    /// 同 ls 退出码 4 的「成功但有异常」先例（失败包络无 data 的契约不被破坏）。</summary>
+    public static CliEnvelope<CliMigrateData> MigrateDryRun(MigrationPlan plan) => new()
+    {
+        Ok = true,
+        Command = "migrate",
+        Data = CliMigrateData.Of(plan, execute: false),
+    };
+
+    /// <summary>migrate --execute 完成后的结构化结果（失败走 Error 包络，不进这里）。</summary>
+    public static CliEnvelope<CliMigrateData> MigrateDone(MigrationPlan plan) => new()
+    {
+        Ok = true,
+        Command = "migrate",
+        Data = CliMigrateData.Of(plan, execute: true),
+    };
+
+    /// <summary>config 的结构化结果：登记文件当前解析位置与自定义路径（无则 null）。</summary>
+    public static CliEnvelope<CliConfigData> ConfigLocation(string resolvedPath, string? customPath) => new()
+    {
+        Ok = true,
+        Command = "config",
+        Data = new CliConfigData { RegistryFilePath = resolvedPath, CustomRegistryFilePath = customPath },
+    };
+
+    /// <summary>remove 的结构化结果：被移除的源路径与是否保留链接。</summary>
+    public static CliEnvelope<CliRemoveData> Removed(string source, bool keepLink) => new()
+    {
+        Ok = true,
+        Command = "remove",
+        Data = new CliRemoveData { Source = source, KeepLink = keepLink },
     };
 
     public static CliEnvelope<object?> Error(string command, string code, string message) => new()

@@ -270,6 +270,22 @@ public class LinkRegistryNoteTests : IDisposable
 
         Assert.Equal("", Assert.Single(registry.Entries).Note);
     }
+
+    [Fact]
+    public void FindEntry_matches_source_case_and_separator_insensitively()
+    {
+        // FindEntry（CLI note --json 用）：与 ContainsEntry/UpdateNote 同一匹配契约
+        var registry = Seeded(_root);
+
+        var byCase = registry.FindEntry(@"c:\links\app");
+        var bySlash = registry.FindEntry("C:/Links/App");
+
+        Assert.NotNull(byCase);
+        Assert.NotNull(bySlash);
+        Assert.Equal(@"C:\Links\App", byCase!.Source);
+        Assert.Equal(@"C:\Links\App", bySlash!.Source);
+        Assert.Null(registry.FindEntry(@"C:\No\Such"));
+    }
 }
 
 public class LinkRegistryPathNormalizationTests : IDisposable
