@@ -161,29 +161,41 @@ static int RunLs(bool json, string? registryRoot)
 
 static int RunCreate(IReadOnlyList<string> positional, bool json, string? registryRoot)
 {
-    if (positional.Count < 2)
+    var positionalArgs = positional.Where(a => a != "--symlink").ToArray();
+    var useSymlink = positional.Contains("--symlink");
+
+    if (positionalArgs.Length < 2)
     {
-        return Fail(json, "create", ExitCodes.UserError, "用法：create <源路径> <目标路径> [备注] [--json] [--registry <根目录>]");
+        return Fail(json, "create", ExitCodes.UserError, "用法：create <源路径> <目标路径> [备注] [--symlink] [--json] [--registry <根目录>]");
     }
 
-    var source = positional[0];
-    var target = positional[1];
-    var note = positional.Count > 2 ? positional[2] : "";
+    var source = positionalArgs[0];
+    var target = positionalArgs[1];
+    var note = positionalArgs.Length > 2 ? positionalArgs[2] : "";
 
-    var entry = LinkCreator.CreateJunction(source, target, note, registryRoot);
-
-    if (json)
+    try
     {
-        Console.WriteLine(CliJson.Serialize(CliJson.Create(entry)));
-    }
-    else
-    {
-        Console.WriteLine(LinkCreator.DescribeCreated(entry));
-    }
+        var entry = useSymlink
+            ? LinkCreator.CreateSymlink(source, target, note)
+            : LinkCreator.CreateJunction(source, target, note, registryRoot);
 
-    return ExitCodes.Success;
+        if (json)
+        {
+            Console.WriteLine(CliJson.Serialize(CliJson.Create(entry)));
+        }
+        else
+        {
+            Console.WriteLine(LinkCreator.DescribeCreated(entry));
+        }
+
+        return ExitCodes.Success;
+    }
+    catch (InvalidOperationException ex)
+    {
+        // 开发者模式门槛：拒绝创建并给出中文指引（exit 2，用法/前置条件类错误）
+        return Fail(json, "create", ExitCodes.UserError, $"创建被拒绝：{ex.Message}");
+    }
 }
-
 static int RunHelp(bool json)
 {
     if (json)
