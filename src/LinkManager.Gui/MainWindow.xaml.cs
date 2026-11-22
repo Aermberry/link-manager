@@ -39,6 +39,14 @@ public partial class MainWindow : Window
         RefreshButton.Click += (_, _) => LoadRegistry();
     }
 
+    /// <summary>迁移向导入口：完成后刷新登记列表，让新链接立即可见。</summary>
+    private void WizardButton_Click(object sender, RoutedEventArgs e)
+    {
+        var wizard = new MigrationWizardWindow { Owner = this };
+        wizard.ShowDialog();
+        LoadRegistry();
+    }
+
     private void CreateButton_Click(object sender, RoutedEventArgs e)
     {
         var source = SourcePathInput.Text.Trim();

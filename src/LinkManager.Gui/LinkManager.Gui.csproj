@@ -4,6 +4,12 @@
     <ProjectReference Include="..\LinkManager.Core\LinkManager.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- 向导状态机的测试接缝（内部执行委托）对测试工程可见 -->
+    <InternalsVisibleTo Include="LinkManager.Gui.Tests" />
+    <InternalsVisibleTo Include="SmokeProbe" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net11.0-windows</TargetFramework>

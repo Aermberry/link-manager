@@ -1,0 +1,204 @@
+using System.IO;
+using LinkManager.Core.Migration;
+using LinkManager.Gui;
+
+namespace LinkManager.Gui.Tests;
+
+/// <summary>
+/// 五步向导状态机：选择源 → 选择目标 → 预览(dry-run) → 执行 → 结果摘要。
+/// 计划编制/执行/登记全部委托 Core（MigrationPlanner/MigrationRunner），
+/// 状态机只管步骤推进与中文阻碍展示；对真实临时目录测试。
+/// </summary>
+public class MigrationWizardModelTests : IDisposable
+{
+    private readonly string _root;
+
+    public MigrationWizardModelTests()
+    {
+        _root = Path.Combine(Path.GetTempPath(), $"link-manager-wizard-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_root);
+    }
+
+    public void Dispose()
+    {
+        try { Directory.Delete(_root, recursive: true); } catch (IOException) { }
+    }
+
+    private string NewSource(int fileCount = 3, string name = "src")
+    {
+        var source = Path.Combine(_root, name);
+        Directory.CreateDirectory(source);
+        for (var i = 0; i < fileCount; i++)
+        {
+            File.WriteAllText(Path.Combine(source, $"file{i}.txt"), $"content-{i}");
+        }
+        Directory.CreateDirectory(Path.Combine(source, "sub"));
+        File.WriteAllText(Path.Combine(source, "sub", "nested.txt"), "nested");
+        return source;
+    }
+
+    /// <summary>进程探测注入固定结果（生产环境走 DefaultProcessProbe 真扫描）。</summary>
+    private MigrationWizardModel NewModel(string[]? running = null) =>
+        new(registryRoot: _root, probe: new FakeWizardProbe(running ?? []));
+
+    // ---- 步骤推进 ----
+
+    [Fact]
+    public void Starts_at_source_step_and_advances_through_five_steps()
+    {
+        var model = NewModel();
+
+        Assert.Equal(WizardStep.Source, model.CurrentStep);
+
+        model.SourcePath = NewSource();
+        model.GoNext();
+        Assert.Equal(WizardStep.Target, model.CurrentStep);
+
+        model.TargetPath = Path.Combine(_root, "dst");
+        model.GoNext();
+        Assert.Equal(WizardStep.Preview, model.CurrentStep);
+
+        model.ConfirmExecute();
+        Assert.Equal(WizardStep.Result, model.CurrentStep);
+        Assert.True(model.Result?.Ok);
+    }
+
+    [Fact]
+    public void Back_returns_to_previous_step_and_keeps_inputs()
+    {
+        var source = NewSource();
+        var model = NewModel();
+
+        model.SourcePath = source;
+        model.GoNext();
+        model.TargetPath = Path.Combine(_root, "dst");
+        model.GoNext();
+        Assert.Equal(WizardStep.Preview, model.CurrentStep);
+
+        model.GoBack();
+        Assert.Equal(WizardStep.Target, model.CurrentStep);
+        Assert.Equal(source, model.SourcePath);
+        Assert.Equal(Path.Combine(_root, "dst"), model.TargetPath);
+    }
+
+    [Fact]
+    public void Cannot_go_next_without_required_input()
+    {
+        var model = NewModel();
+        Assert.False(model.CanGoNext);
+        Assert.Throws<InvalidOperationException>(() => model.GoNext());
+
+        model.SourcePath = NewSource();
+        Assert.True(model.CanGoNext);
+    }
+
+    // ---- 预览与阻断 ----
+
+    [Fact]
+    public void Preview_shows_core_plan_and_reports_executable_state()
+    {
+        var source = NewSource();
+        var model = NewModel();
+        model.SourcePath = source;
+        model.GoNext();
+        model.TargetPath = Path.Combine(_root, "dst");
+        model.GoNext();
+
+        // 预览内容来自 Core dry-run 计划（含源/目标），执行前不改文件系统
+        Assert.Contains("计划", model.PreviewText);
+        Assert.Contains(source, model.PreviewText);
+        Assert.Contains("dst", model.PreviewText);
+        Assert.True(model.IsExecutable);
+        Assert.Empty(model.Blockers);
+        Assert.False(Directory.Exists(Path.Combine(_root, "dst")));
+    }
+
+    [Fact]
+    public void Preview_blocked_with_chinese_reason_when_process_running()
+    {
+        var source = NewSource();
+        var model = NewModel(running: ["openmausbot"]);
+        model.SourcePath = source;
+        model.GoNext();
+        model.TargetPath = Path.Combine(_root, "dst");
+        model.GoNext();
+
+        Assert.False(model.IsExecutable);
+        Assert.Contains(model.Blockers, b => b.Contains("openmausbot"));
+        // 阻断：确认执行被拒绝，不进入结果步
+        Assert.Throws<InvalidOperationException>(() => model.ConfirmExecute());
+        Assert.Equal(WizardStep.Preview, model.CurrentStep);
+    }
+
+    [Fact]
+    public void Preview_blocked_with_chinese_reason_when_target_nonempty()
+    {
+        var source = NewSource();
+        var target = Path.Combine(_root, "dst");
+        Directory.CreateDirectory(target);
+        File.WriteAllText(Path.Combine(target, "occupied.txt"), "keep");
+
+        var model = NewModel();
+        model.SourcePath = source;
+        model.GoNext();
+        model.TargetPath = target;
+        model.GoNext();
+
+        Assert.False(model.IsExecutable);
+        Assert.Contains(model.Blockers, b => b.Contains("非空"));
+        Assert.Throws<InvalidOperationException>(() => model.ConfirmExecute());
+    }
+
+    // ---- 结果摘要 ----
+
+    [Fact]
+    public void Result_summary_carries_file_count_bytes_and_junction_link()
+    {
+        var source = NewSource();
+        var target = Path.Combine(_root, "dst");
+        var model = NewModel();
+        model.SourcePath = source;
+        model.GoNext();
+        model.TargetPath = target;
+        model.GoNext();
+        model.ConfirmExecute();
+
+        // 摘要数据与实际一致：4 个文件 / 字节数、原位置已是 junction、目标有数据
+        Assert.True(model.Result?.Ok);
+        Assert.Equal(4, model.Result?.Stats?.FileCount);
+        Assert.Equal(source, model.RegistryEntry?.Source);
+        Assert.Equal(target, model.RegistryEntry?.Target);
+        Assert.Equal("junction", model.RegistryEntry?.Type);
+        Assert.True((new DirectoryInfo(source).Attributes & FileAttributes.ReparsePoint) != 0);
+        Assert.True(File.Exists(Path.Combine(target, "file0.txt")));
+        Assert.True(File.Exists(Path.Combine(source, "file0.txt"))); // 经 junction 读到目标
+    }
+
+    [Fact]
+    public void Failed_execution_surfaces_chinese_error_and_stays_on_preview()
+    {
+        var source = NewSource();
+        var model = NewModel();
+        model.SourcePath = source;
+        model.GoNext();
+        model.TargetPath = Path.Combine(_root, "dst");
+        model.GoNext();
+
+        // 竞态：预览时无阻碍，执行瞬间被占——执行步抛错不能崩，中文原因回显预览步
+        Assert.True(model.IsExecutable);
+        model.ConfirmExecuteForTest(_ => throw new MigrationException(
+            "以下程序还在运行，请先退出它们再迁移：magpie"));
+        Assert.Equal(WizardStep.Preview, model.CurrentStep);
+        Assert.Contains("magpie", model.ErrorMessage);
+    }
+}
+
+/// <summary>测试进程探测器：返回构造时给定的运行中进程列表。</summary>
+internal sealed class FakeWizardProbe(string[] running) : IProcessProbe
+{
+    public IReadOnlyList<RunningProcess> FindRunning(IEnumerable<string> processNames) =>
+        processNames
+            .Where(name => running.Any(r => r.Equals(name, StringComparison.OrdinalIgnoreCase)))
+            .Select(name => new RunningProcess(name))
+            .ToList();
+}
