@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Media;
 using LinkMgr.Core.Health;
+using LinkMgr.Core.Links;
 using LinkMgr.Core.Registry;
 
 namespace LinkMgr.Gui;
@@ -36,6 +37,39 @@ public partial class MainWindow : Window
         InitializeComponent();
         Loaded += (_, _) => LoadRegistry();
         RefreshButton.Click += (_, _) => LoadRegistry();
+    }
+
+    private void CreateButton_Click(object sender, RoutedEventArgs e)
+    {
+        var source = SourcePathInput.Text.Trim();
+        var target = TargetPathInput.Text.Trim();
+        var note = NoteInput.Text.Trim();
+
+        try
+        {
+            var entry = LinkCreator.CreateJunction(source, target, note);
+            SourcePathInput.Text = "";
+            TargetPathInput.Text = "";
+            NoteInput.Text = "";
+            LoadRegistry();
+            StatusText.Text = $"已创建 junction：{entry.Target} → {entry.Source}（已自动登记）";
+        }
+        catch (LinkCreateException ex)
+        {
+            MessageBox.Show(this, ex.Message, "创建失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        catch (RegistryCorruptException ex)
+        {
+            ShowRegistryError("登记文件损坏", ex.Message);
+        }
+        catch (RegistryIoException ex)
+        {
+            ShowRegistryError("登记文件读写失败", ex.Message);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "创建失败", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private void LoadRegistry()
