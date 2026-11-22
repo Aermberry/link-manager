@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using LinkManager.Core.Migration;
 using LinkManager.Core.Registry;
@@ -27,16 +28,14 @@ public sealed class MigrationWizardModel
     private readonly IProcessProbe? _probe;
     private MigrationPlan? _plan;
     private MigrationResult? _result;
-
-    /// <summary>测试接缝：替换执行委托（真实实现即 <see cref="MigrationRunner.Run"/>）。</summary>
-    internal Func<MigrationPlan, MigrationResult> ExecuteHandler { get; set; }
+    private Func<MigrationPlan, MigrationResult> _executeHandler;
 
     public MigrationWizardModel(string? registryRoot = null, IProcessProbe? probe = null)
     {
         _registryRoot = registryRoot;
         _probe = probe;
         // 默认委托 Core 真执行；探测基准与预览一致（生产 = 真扫描，测试 = 注入）
-        ExecuteHandler = plan => new MigrationRunner(
+        _executeHandler = plan => new MigrationRunner(
             probeFactory: _ => _probe ?? new DefaultProcessProbe()).Run(plan);
     }
 
@@ -57,8 +56,14 @@ public sealed class MigrationWizardModel
     /// <summary>执行结果（结果步展示：Ok/报告/文件数/字节数）。</summary>
     public MigrationResult? Result => _result;
 
+    /// <summary>执行耗时（结果步展示「耗时」；仅成功执行后填充）。</summary>
+    public TimeSpan? Elapsed { get; private set; }
+
     /// <summary>登记表中新增的条目（结果步展示链接路径；null = 未能确认）。</summary>
     public LinkEntry? RegistryEntry { get; private set; }
+
+    /// <summary>登记表读取失败的原因（迁移成功但读回条目失败时非空，摘要中如实展示）。</summary>
+    public string? RegistryReadError { get; private set; }
 
     /// <summary>执行失败的中文原因（回到预览步展示）。</summary>
     public string ErrorMessage { get; private set; } = "";
@@ -103,10 +108,10 @@ public sealed class MigrationWizardModel
     }
 
     /// <summary>
-    /// 确认执行：仅在预览步、无阻碍时可用。走 Core 真执行；
-    /// 成功 → 结果步；失败 → 中文原因留在预览步（源数据由 Core 保持原样）。
+    /// 进入执行步（第 4 步）：仅预览步且无阻碍时可用。实际迁移由
+    /// <see cref="CompleteExecute"/> 完成（UI 可放到后台线程，避免界面冻结）。
     /// </summary>
-    public void ConfirmExecute()
+    public void EnterExecute()
     {
         if (CurrentStep != WizardStep.Preview)
         {
@@ -118,32 +123,59 @@ public sealed class MigrationWizardModel
                 "存在未解决的前置问题，不能执行：" + string.Join("；", Blockers));
         }
 
+        CurrentStep = WizardStep.Execute;
+    }
+
+    /// <summary>
+    /// 执行迁移链路（第 4 步 → 第 5 步）：走 Core 真执行，可在后台线程调用。
+    /// 成功 → 结果步；失败 → 中文原因与预览步阻碍一并展示（源数据由 Core 保持原样）。
+    /// </summary>
+    public void CompleteExecute()
+    {
+        if (CurrentStep != WizardStep.Execute)
+        {
+            throw new InvalidOperationException("只有执行步可以完成执行");
+        }
+
+        var sw = Stopwatch.StartNew();
         try
         {
-            _result = ExecuteHandler(_plan!);
+            _result = _executeHandler(_plan!);
         }
         catch (MigrationException ex)
         {
             ErrorMessage = ex.Message;
-            return; // 留在预览步，错误原因展示给用户
+            CurrentStep = WizardStep.Preview; // 留在预览步，错误原因展示给用户
+            return;
         }
         catch (Exception ex) when (ex is RegistryCorruptException or RegistryIoException
                                         or IOException or UnauthorizedAccessException)
         {
             ErrorMessage = $"迁移失败：{ex.Message}";
+            CurrentStep = WizardStep.Preview;
             return;
         }
+        sw.Stop();
 
         if (_result.Ok)
         {
             ErrorMessage = "";
+            Elapsed = sw.Elapsed;
             ReadRegistryEntry();
             CurrentStep = WizardStep.Result;
         }
         else
         {
             ErrorMessage = _result.Report;
+            CurrentStep = WizardStep.Preview;
         }
+    }
+
+    /// <summary>组合入口：进入执行步并同步执行到底（简单宿主/测试用）。</summary>
+    public void ConfirmExecute()
+    {
+        EnterExecute();
+        CompleteExecute();
     }
 
     /// <summary>
@@ -152,7 +184,7 @@ public sealed class MigrationWizardModel
     /// </summary>
     internal void ConfirmExecuteForTest(Func<MigrationPlan, MigrationResult> handler)
     {
-        ExecuteHandler = handler;
+        _executeHandler = handler;
         ConfirmExecute();
     }
 
@@ -168,7 +200,7 @@ public sealed class MigrationWizardModel
         Blockers = MigrationRunner.FindBlockers(_plan);
     }
 
-    /// <summary>从登记表读回新条目（结果步展示「列表出现新链接」）。</summary>
+    /// <summary>从登记表读回新条目（结果步展示「列表出现新链接」）；失败如实记录原因。</summary>
     private void ReadRegistryEntry()
     {
         try
@@ -177,10 +209,15 @@ public sealed class MigrationWizardModel
             RegistryEntry = registry.Entries
                 .FirstOrDefault(e => string.Equals(
                     e.Source, _plan!.Source, StringComparison.OrdinalIgnoreCase));
+            RegistryReadError = RegistryEntry is null
+                ? $"登记表中未找到源为 {_plan!.Source} 的新条目，请检查登记文件。"
+                : null;
         }
         catch (Exception ex) when (ex is RegistryCorruptException or RegistryIoException)
         {
-            RegistryEntry = null; // 登记读取失败不掩盖迁移成功本身
+            // 登记读取失败不掩盖迁移成功本身，但必须在摘要中如实展示
+            RegistryEntry = null;
+            RegistryReadError = $"迁移已成功，但读取登记表失败：{ex.Message}";
         }
     }
 

@@ -6,9 +6,10 @@ using LinkManager.Core.Registry;
 namespace LinkManager.Gui;
 
 /// <summary>
-/// 五步迁移向导窗口：UI 只做步骤呈现与文件对话框，全部业务走
+/// 五步迁移向导窗口：UI 只做步骤呈现与目录选择，全部业务走
 /// <see cref="MigrationWizardModel"/>（其内只调 Core）。
-/// 前置检查失败（进程占用、目标非空等）在预览步以中文原因展示并阻断执行。
+/// 前置检查失败（进程占用、目标非空等）在预览步以中文原因展示并阻断执行；
+/// 执行瞬间失败（竞态）回预览步以红色中文原因展示。
 /// </summary>
 public partial class MigrationWizardWindow : Window
 {
@@ -31,20 +32,35 @@ public partial class MigrationWizardWindow : Window
 
         StepTitle.Text = _model.CurrentStep switch
         {
-            WizardStep.Source => "迁移向导 · 第 1 步 / 共 4 步：选择源目录",
-            WizardStep.Target => "迁移向导 · 第 2 步 / 共 4 步：选择目标位置",
-            WizardStep.Preview => "迁移向导 · 第 3 步 / 共 4 步：预览迁移计划",
-            WizardStep.Execute => "迁移向导 · 第 4 步 / 共 4 步：正在执行",
-            WizardStep.Result => "迁移向导 · 完成：结果摘要",
+            WizardStep.Source => "迁移向导 · 第 1 步 / 共 5 步：选择源目录",
+            WizardStep.Target => "迁移向导 · 第 2 步 / 共 5 步：选择目标位置",
+            WizardStep.Preview => "迁移向导 · 第 3 步 / 共 5 步：预览迁移计划",
+            WizardStep.Execute => "迁移向导 · 第 4 步 / 共 5 步：正在执行",
+            WizardStep.Result => "迁移向导 · 第 5 步 / 共 5 步：结果摘要",
             _ => "迁移向导",
         };
 
         if (_model.CurrentStep == WizardStep.Preview)
         {
             PreviewBox.Text = _model.PreviewText;
-            BlockersText.Text = _model.IsExecutable
-                ? "✓ 前置检查全部通过，可以执行迁移。"
-                : "无法执行，原因：\n" + string.Join("\n", _model.Blockers.Select(b => "· " + b));
+            var lines = new List<string>();
+            if (!string.IsNullOrEmpty(_model.ErrorMessage))
+            {
+                lines.Add("✗ " + _model.ErrorMessage);
+            }
+            lines.AddRange(_model.Blockers.Select(b => "· " + b));
+            if (_model.IsExecutable)
+            {
+                BlockersText.Text = string.IsNullOrEmpty(_model.ErrorMessage)
+                    ? "✓ 前置检查全部通过，可以执行迁移。"
+                    : "";
+                BlockersText.Foreground = System.Windows.Media.Brushes.ForestGreen;
+            }
+            else
+            {
+                BlockersText.Text = "无法执行，原因：\n" + string.Join("\n", lines);
+                BlockersText.Foreground = System.Windows.Media.Brushes.Firebrick;
+            }
         }
 
         if (_model.CurrentStep == WizardStep.Result && _model.Result is { } result)
@@ -53,10 +69,16 @@ public partial class MigrationWizardWindow : Window
         }
 
         BackButton.IsEnabled = _model.CurrentStep is WizardStep.Target or WizardStep.Preview;
-        NextButton.IsEnabled = _model.CurrentStep != WizardStep.Execute;
+        NextButton.IsEnabled = _model.CurrentStep switch
+        {
+            WizardStep.Source or WizardStep.Target => true,
+            WizardStep.Preview => _model.IsExecutable, // 有阻碍时按钮真实禁用
+            WizardStep.Result => true,
+            _ => false, // Execute 期间不允许再点
+        };
         NextButton.Content = _model.CurrentStep switch
         {
-            WizardStep.Preview => _model.IsExecutable ? "确认执行" : "无法执行",
+            WizardStep.Preview => "确认执行",
             WizardStep.Result => "完成",
             _ => "下一步",
         };
@@ -72,6 +94,11 @@ public partial class MigrationWizardWindow : Window
             lines.Add($"总字节数：{stats.TotalBytes:N0}（约 {stats.TotalBytes / 1024.0 / 1024.0:F1} MB）");
         }
 
+        if (_model.Elapsed is { } elapsed)
+        {
+            lines.Add($"耗时：{elapsed.TotalSeconds:F1} 秒");
+        }
+
         if (_model.RegistryEntry is { } entry)
         {
             lines.Add($"链接路径（原位置）：{entry.Source}");
@@ -79,34 +106,35 @@ public partial class MigrationWizardWindow : Window
             lines.Add("该链接已出现在主窗口登记列表中。");
         }
 
+        if (_model.RegistryReadError is { } registryError)
+        {
+            lines.Add($"⚠ {registryError}");
+        }
+
         return string.Join(Environment.NewLine, lines);
     }
 
     private void BrowseSourceButton_Click(object sender, RoutedEventArgs e)
     {
-        // 同样借用文件对话框选目录：任选源文件夹里的一个文件，取其所在目录
-        var dialog = new Microsoft.Win32.OpenFileDialog
+        var dialog = new Microsoft.Win32.OpenFolderDialog
         {
-            Title = "选择要迁移的文件夹：进入该文件夹后任选其中一个文件",
-            CheckFileExists = true,
+            Title = "选择要迁移的文件夹（源目录）",
         };
         if (dialog.ShowDialog(this) == true)
         {
-            SourceInput.Text = Path.GetDirectoryName(dialog.FileName) ?? "";
+            SourceInput.Text = dialog.FolderName;
         }
     }
 
     private void BrowseTargetButton_Click(object sender, RoutedEventArgs e)
     {
-        // WPF 无原生目录对话框：借用"另存为"选目录——进入目标文件夹后随便点"保存"即可
-        var dialog = new Microsoft.Win32.SaveFileDialog
+        var dialog = new Microsoft.Win32.OpenFolderDialog
         {
-            Title = "选择目标文件夹：进入该文件夹后点“保存”",
-            FileName = "将迁移到这里",
+            Title = "选择目标位置（目标文件夹需为空或尚未创建）",
         };
         if (dialog.ShowDialog(this) == true)
         {
-            TargetInput.Text = Path.GetDirectoryName(dialog.FileName) ?? "";
+            TargetInput.Text = dialog.FolderName;
         }
     }
 
@@ -149,16 +177,12 @@ public partial class MigrationWizardWindow : Window
 
     private async Task ExecuteMigrationAsync()
     {
-        // 执行中视图：模型仍停在 Preview 步（ConfirmExecute 从那里发起并推进到 Result）
-        ExecutePanel.Visibility = Visibility.Visible;
-        PreviewPanel.Visibility = Visibility.Collapsed;
-        StepTitle.Text = "迁移向导 · 第 4 步 / 共 4 步：正在执行";
-        BackButton.IsEnabled = false;
-        NextButton.IsEnabled = false;
+        _model.EnterExecute();
+        ShowStep();
         ExecuteDetail.Text = "正在复制与核对，完成后会自动继续…";
-        await Task.Delay(50); // 让执行中界面先渲染
 
-        _model.ConfirmExecute();
+        // Core 执行是同步 IO/进程调用；丢到线程池跑，避免不确定进度条在 robocopy 期间冻结
+        await Task.Run(_model.CompleteExecute);
         ShowStep();
     }
 

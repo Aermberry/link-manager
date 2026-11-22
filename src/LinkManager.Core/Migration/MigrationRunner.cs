@@ -68,7 +68,8 @@ public sealed class MigrationRunner
 
     /// <summary>
     /// 只读前置检查：返回中文阻碍项列表（空 = 可执行）。不改文件系统，
-    /// 供 GUI/CLI 在执行前展示原因；护栏与 <see cref="Precheck"/> 一致。
+    /// 供 GUI 在执行前展示原因；护栏与 <see cref="Precheck"/> 语义一致（源/目标形态），
+    /// 进程部分以计划内探测快照为准，执行时 Precheck 仍会实时复检兜底。
     /// </summary>
     public static IReadOnlyList<string> FindBlockers(MigrationPlan plan)
     {
