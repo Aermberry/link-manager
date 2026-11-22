@@ -77,6 +77,14 @@ public static class LinkCreator
         }
     }
 
+    /// <summary>
+    /// 迁移链路内的 junction 创建：target 是刚复制完数据的真实目录（绝不能删），
+    /// source 是已删除的源位置（junction 建在这里回指 target）。
+    /// 与 CreateJunction 的参数约定相反——那里 target 是链接所在处。
+    /// </summary>
+    public static void RunJunctionToolForMigration(string linkPath, string dataPath) =>
+        RunJunctionTool(dataPath, linkPath);
+
     private static void RunJunctionTool(string source, string target)
     {
         if (Directory.Exists(target))
