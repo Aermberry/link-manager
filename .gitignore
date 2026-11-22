@@ -8,3 +8,4 @@ obj/
 
 # Test results
 TestResults/
+.agents/tmp/
