@@ -76,7 +76,70 @@ public class MigrationRunnerTests : IDisposable
         Assert.False(Directory.Exists(target));
     }
 
+    // ---- 结果摘要 ----
+
+    [Fact]
+    public void Run_result_carries_structured_stats_for_summary_display()
+    {
+        var source = NewSource();
+        var target = Path.Combine(_root, "dst");
+
+        var result = NewRunner().Run(NewPlan(source, target));
+
+        Assert.True(result.Ok);
+        // GUI 摘要步用结构化数据，不解析中文报告字符串
+        Assert.Equal(4, result.Stats?.FileCount); // 3 个根文件 + sub/nested.txt
+        var expectedBytes = 3 * "content-0".Length + "nested".Length; // 3×9 + 6 = 33
+        Assert.Equal(expectedBytes, result.Stats?.TotalBytes);
+    }
+
     // ---- 前置检查 ----
+
+    [Fact]
+    public void FindBlockers_lists_chinese_reasons_without_touching_filesystem()
+    {
+        // 目标非空 + 进程占用：两个阻碍都该列出（中文原因，GUI 预览步据此阻断）
+        var source = NewSource();
+        var target = Path.Combine(_root, "dst");
+        Directory.CreateDirectory(target);
+        File.WriteAllText(Path.Combine(target, "occupied.txt"), "keep");
+
+        var plan = NewPlan(source, target, running: ["openmausbot"]);
+
+        var blockers = MigrationRunner.FindBlockers(plan);
+
+        Assert.Contains(blockers, b => b.Contains("非空"));
+        Assert.Contains(blockers, b => b.Contains("openmausbot"));
+        // 只读探测：不改动文件系统
+        Assert.True(File.Exists(Path.Combine(target, "occupied.txt")));
+        Assert.False(new DirectoryInfo(source).Attributes.HasFlag(FileAttributes.ReparsePoint));
+    }
+
+    [Fact]
+    public void FindBlockers_empty_when_plan_is_executable()
+    {
+        var source = NewSource();
+        var target = Path.Combine(_root, "dst");
+
+        var blockers = MigrationRunner.FindBlockers(NewPlan(source, target));
+
+        Assert.Empty(blockers);
+    }
+
+    [Fact]
+    public void FindBlockers_rejects_missing_source_and_nested_target()
+    {
+        var blockers = MigrationRunner.FindBlockers(NewPlan(
+            Path.Combine(_root, "no-such-src"), Path.Combine(_root, "dst")));
+
+        Assert.Contains(blockers, b => b.Contains("源路径不存在"));
+
+        var source = NewSource(name: "src2");
+        var nested = MigrationRunner.FindBlockers(NewPlan(source, Path.Combine(source, "inner")));
+
+        Assert.Contains(nested, b => b.Contains("嵌套"));
+    }
+
 
     [Fact]
     public void Run_rejects_when_target_process_is_running()

@@ -8,6 +8,9 @@ public sealed record MigrationResult
 {
     public required bool Ok { get; init; }
     public required string Report { get; init; }
+
+    /// <summary>复制统计（文件数/字节数）；成功时填充，供 GUI 摘要步等结构化展示。</summary>
+    public CopyStats? Stats { get; init; }
 }
 
 /// <summary>
@@ -61,6 +64,60 @@ public sealed class MigrationRunner
             Ok = plan.Ok,
             Report = string.Join(Environment.NewLine, lines),
         };
+    }
+
+    /// <summary>
+    /// 只读前置检查：返回中文阻碍项列表（空 = 可执行）。不改文件系统，
+    /// 供 GUI/CLI 在执行前展示原因；护栏与 <see cref="Precheck"/> 一致。
+    /// </summary>
+    public static IReadOnlyList<string> FindBlockers(MigrationPlan plan)
+    {
+        var blockers = new List<string>();
+
+        // 文件检查在先：Directory.Exists 对文件路径返回 false，顺序反了会把"是文件"误报成"不存在"
+        if (File.Exists(plan.Source))
+        {
+            blockers.Add($"源路径是文件不是目录：{plan.Source}");
+        }
+        else if (!Directory.Exists(plan.Source))
+        {
+            blockers.Add($"源路径不存在：{plan.Source}");
+        }
+        else if (IsSamePath(plan.Source, plan.Target)
+                 || IsWithin(plan.Target, plan.Source)
+                 || IsWithin(plan.Source, plan.Target))
+        {
+            blockers.Add(
+                $"源与目标互为嵌套或相同，会造成循环迁移与数据丢失：{plan.Source} / {plan.Target}");
+        }
+        else if (new DirectoryInfo(plan.Source).Attributes.HasFlag(FileAttributes.ReparsePoint))
+        {
+            blockers.Add($"源路径已是一个链接，请迁移它指向的真实目录：{plan.Source}");
+        }
+
+        if (Directory.Exists(plan.Target))
+        {
+            if (new DirectoryInfo(plan.Target).Attributes.HasFlag(FileAttributes.ReparsePoint))
+            {
+                blockers.Add($"目标路径已存在且是一个链接：{plan.Target}");
+            }
+            else if (Directory.EnumerateFileSystemEntries(plan.Target).Any())
+            {
+                blockers.Add($"目标路径非空，拒绝覆盖：{plan.Target}。请先清空或换一个目标路径。");
+            }
+        }
+        else if (File.Exists(plan.Target))
+        {
+            blockers.Add($"目标路径已存在同名文件：{plan.Target}");
+        }
+
+        if (plan.RunningProcesses.Count > 0)
+        {
+            var names = string.Join("、", plan.RunningProcesses.Select(p => p.Name));
+            blockers.Add($"以下程序还在运行，请先退出它们再迁移：{names}");
+        }
+
+        return blockers;
     }
 
     /// <summary>执行完整迁移链路。任一步失败：源保持原样、目标清理。</summary>
@@ -151,6 +208,7 @@ public sealed class MigrationRunner
             Ok = true,
             Report = $"迁移完成：{plan.Source} → {plan.Target}（{stats.FileCount} 个文件 / {stats.TotalBytes} 字节）。" +
                      $"原位置已建 junction，登记表已更新。",
+            Stats = stats,
         };
     }
 
