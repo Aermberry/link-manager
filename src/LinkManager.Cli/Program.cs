@@ -200,6 +200,55 @@ static int Fail(bool json, string command, int exitCode, string message)
 }
 
 /// <summary>退出码约定。唯一权威定义；文档在 docs/cli-conventions.md，改动须同步。</summary>
+static int RunMigrate(string[] args)
+{
+    // 用法：migrate <src> <dst> [备注] [--execute]
+    // dry-run 是默认行为：只输出完整执行计划，不做任何文件系统改动；
+    // 显式 --execute 才实际执行迁移。
+    var positional = new List<string>();
+    var execute = false;
+    foreach (var arg in args.Skip(1))
+    {
+        if (arg == "--execute")
+        {
+            execute = true;
+        }
+        else if (arg.StartsWith("--"))
+        {
+            Console.Error.WriteLine($"未知选项: {arg}（migrate 仅支持 --execute）");
+            return 2;
+        }
+        else
+        {
+            positional.Add(arg);
+        }
+    }
+
+    if (positional.Count < 2)
+    {
+        Console.Error.WriteLine("用法：migrate <源路径> <目标路径> [备注] [--execute]");
+        Console.Error.WriteLine("默认 dry-run：只输出执行计划。加 --execute 才实际迁移。");
+        return 2;
+    }
+
+    var source = positional[0];
+    var target = positional[1];
+    var note = positional.Count > 2 ? positional[2] : "";
+
+    var runner = new MigrationRunner();
+    var plan = MigrationPlanner.Plan(source, target, note: note);
+
+    if (!execute)
+    {
+        var dryRun = runner.DryRun(plan);
+        Console.WriteLine(dryRun.Report);
+        return dryRun.Ok ? 0 : 1;
+    }
+
+    var result = runner.Run(plan);
+    Console.WriteLine(result.Report);
+    return 0;
+}
 internal static class ExitCodes
 {
     public const int Success = 0;
@@ -300,52 +349,3 @@ internal static class CliArgParser
     }
 }
 
-static int RunMigrate(string[] args)
-{
-    // 用法：migrate <src> <dst> [备注] [--execute]
-    // dry-run 是默认行为：只输出完整执行计划，不做任何文件系统改动；
-    // 显式 --execute 才实际执行迁移。
-    var positional = new List<string>();
-    var execute = false;
-    foreach (var arg in args.Skip(1))
-    {
-        if (arg == "--execute")
-        {
-            execute = true;
-        }
-        else if (arg.StartsWith("--"))
-        {
-            Console.Error.WriteLine($"未知选项: {arg}（migrate 仅支持 --execute）");
-            return 2;
-        }
-        else
-        {
-            positional.Add(arg);
-        }
-    }
-
-    if (positional.Count < 2)
-    {
-        Console.Error.WriteLine("用法：migrate <源路径> <目标路径> [备注] [--execute]");
-        Console.Error.WriteLine("默认 dry-run：只输出执行计划。加 --execute 才实际迁移。");
-        return 2;
-    }
-
-    var source = positional[0];
-    var target = positional[1];
-    var note = positional.Count > 2 ? positional[2] : "";
-
-    var runner = new MigrationRunner();
-    var plan = MigrationPlanner.Plan(source, target, note: note);
-
-    if (!execute)
-    {
-        var dryRun = runner.DryRun(plan);
-        Console.WriteLine(dryRun.Report);
-        return dryRun.Ok ? 0 : 1;
-    }
-
-    var result = runner.Run(plan);
-    Console.WriteLine(result.Report);
-    return 0;
-}
