@@ -65,7 +65,7 @@ public sealed class LinkRegistry
     private static string FileAt(string root) =>
         Path.Combine(root, DefaultFolderName, DefaultFileName);
 
-    internal static readonly JsonSerializerOptions JsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -93,7 +93,7 @@ public sealed class LinkRegistry
         string root;
         if (rootDirectory is not null)
         {
-            // 显式 root：测试与 --registry-root 场景，优先于设置
+            // 显式 root：显式指定的场景（测试/嵌入方），优先于设置
             file = FileAt(rootDirectory);
             root = rootDirectory;
         }
@@ -151,6 +151,10 @@ public sealed class LinkRegistry
         return removed > 0;
     }
 
+    /// <summary>是否存在指定源路径的条目（大小写与分隔符方向不敏感）。</summary>
+    public bool ContainsEntry(string source) =>
+        _entries.Any(e => MatchesSource(e, source));
+
     /// <summary>更新指定源路径条目的备注；返回是否找到并更新。备注可为空串（清除）。</summary>
     public bool UpdateNote(string source, string note)
     {
@@ -183,6 +187,14 @@ public sealed class LinkRegistry
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(filePath))!);
         var empty = new RegistryFile();
         File.WriteAllText(filePath, JsonSerializer.Serialize(empty, JsonOptions));
+    }
+
+    /// <summary>读取指定路径的登记文件并解析校验；无效内容抛异常。供迁移器校验新位置文件。</summary>
+    internal static RegistryFile ReadValidated(string filePath)
+    {
+        var json = File.ReadAllText(filePath);
+        return JsonSerializer.Deserialize<RegistryFile>(json, JsonOptions)
+               ?? throw new RegistryCorruptException($"登记文件为空或不是有效的登记表：{filePath}");
     }
 
     private static string GetDefaultRoot() => Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);

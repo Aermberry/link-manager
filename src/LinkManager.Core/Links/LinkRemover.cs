@@ -1,4 +1,3 @@
-using System.IO;
 using LinkManager.Core.Health;
 using LinkManager.Core.Registry;
 
@@ -16,11 +15,15 @@ public sealed class LinkRemovalException(string message, Exception? inner = null
 /// </summary>
 public static class LinkRemover
 {
-    /// <summary>仅删登记：移除条目，不动文件系统链接。调用方负责 Save。</summary>
+    /// <summary>仅删登记：移除条目并落盘，不动文件系统链接。未命中时不写盘。</summary>
     public static bool RemoveEntryOnly(LinkRegistry registry, string source)
     {
         var removed = registry.Remove(source);
-        registry.Save();
+        if (removed)
+        {
+            registry.Save();
+        }
+
         return removed;
     }
 
@@ -35,14 +38,10 @@ public static class LinkRemover
     {
         if (!confirmDeleteLink)
         {
-            throw new LinkRemovalException(
-                $"拒绝删除链接：未获显式确认。如确认要删除链接本身，请加确认标志（--delete-link 需搭配 --yes）。");
+            throw new LinkRemovalException("拒绝删除链接：未获显式确认。删除链接属于破坏性操作，调用方必须先取得用户确认。");
         }
 
-        var entryExists = registry.Entries.Any(e =>
-            string.Equals(e.Source, source, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(e.Source, source.Replace('/', '\\'), StringComparison.OrdinalIgnoreCase));
-        if (!entryExists)
+        if (!registry.ContainsEntry(source))
         {
             return false;
         }
@@ -55,14 +54,23 @@ public static class LinkRemover
             return true;
         }
 
-        if (LinkHealth.Check(source, "junction") == LinkStatus.Disguised)
+        var entry = registry.Entries.First(e => MatchesRegistrySource(e, source));
+        if (LinkHealth.Check(source, entry.Type) == LinkStatus.Disguised)
         {
             throw new LinkRemovalException($"该路径不是链接而是普通目录/文件，拒绝删除：{source}。请检查登记条目是否过期。");
         }
 
         try
         {
-            Directory.Delete(source, recursive: false);
+            // 只删链接本身（非递归）：目录链接用目录删，文件链接（symlink→file）用文件删
+            if (File.Exists(source) && !Directory.Exists(source))
+            {
+                File.Delete(source);
+            }
+            else
+            {
+                Directory.Delete(source, recursive: false);
+            }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -74,4 +82,8 @@ public static class LinkRemover
         registry.Save();
         return true;
     }
+
+    private static bool MatchesRegistrySource(Registry.LinkEntry entry, string source) =>
+        string.Equals(entry.Source, source, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(entry.Source, source.Replace('/', '\\'), StringComparison.OrdinalIgnoreCase);
 }

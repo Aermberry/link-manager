@@ -8,7 +8,8 @@ public sealed class RegistryMigrationException(string message, Exception? inner 
 
 /// <summary>
 /// 登记位置迁移：把现有登记数据搬到新位置，成功后删除旧文件并持久化设置。
-/// 任一步失败即中止，旧数据原封不动（不留半态）。
+/// 数据复制阶段的失败旧数据原封不动；仅在最后一步（写设置）失败且回滚也失败时
+/// 才可能出现"数据在新位置、设置仍指旧位置"的现场——异常消息中写明如何手工恢复。
 /// </summary>
 public static class RegistryMigrator
 {
@@ -18,7 +19,7 @@ public static class RegistryMigrator
     /// 顺序：检查新路径 → 复制 → 校验可读 → 删旧文件 → 写设置。
     /// 设置写入失败时回滚：恢复旧文件、删除新文件。
     /// </summary>
-    /// <exception cref="RegistryMigrationException">新路径已存在或迁移中途失败（旧数据保持原状）。</exception>
+    /// <exception cref="RegistryMigrationException">新路径已存在或迁移中途失败（含回滚现场说明）。</exception>
     /// <exception cref="SettingsCorruptException">设置文件存在但无法解析。</exception>
     public static void RelocateRegistry(string newFilePath, string? explicitRoot = null, string? settingsFilePath = null)
     {
@@ -75,9 +76,19 @@ public static class RegistryMigrator
         catch (Exception ex)
         {
             // 回滚：恢复旧文件、删除新文件，登记位置保持不变
-            CopyFile(fullNew, currentPath);
-            DeleteQuietly(fullNew);
-            throw new RegistryMigrationException($"设置写入失败，迁移已回滚：{fullNew}", ex);
+            try
+            {
+                CopyFile(fullNew, currentPath);
+                DeleteQuietly(fullNew);
+                throw new RegistryMigrationException($"设置写入失败，迁移已回滚：{fullNew}", ex);
+            }
+            catch (Exception rollbackEx) when (rollbackEx is not RegistryMigrationException)
+            {
+                // 回滚也失败：数据在新位置完好，设置仍指旧位置——明确告知现场，不吞掉
+                throw new RegistryMigrationException(
+                    $"设置写入失败且回滚失败。数据已在新位置：{fullNew}；旧位置 {currentPath} 已无文件。" +
+                    $"请手工把设置文件中 registryFilePath 改为 {fullNew}，或把新文件移回旧位置。", rollbackEx);
+            }
         }
     }
 
@@ -131,14 +142,21 @@ public static class RegistryMigrator
 
     private static void VerifyLoaded(string file)
     {
-        var json = File.ReadAllText(file);
-        _ = System.Text.Json.JsonSerializer.Deserialize<RegistryFile>(
-            json, LinkRegistry.JsonOptions)
-            ?? throw new RegistryMigrationException($"新位置文件不是有效的登记表：{file}");
+        _ = LinkRegistry.ReadValidated(file);
     }
 
+    /// <summary>
+    /// 回滚用尽力删除：失败可容忍（残留文件不掩盖主异常），但记录到异常数据不静默。
+    /// </summary>
     private static void DeleteQuietly(string file)
     {
-        try { File.Delete(file); } catch (IOException) { }
+        try
+        {
+            File.Delete(file);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // 仅回滚路径使用：主异常携带现场说明，此处残留不另抛（避免掩盖根因）
+        }
     }
 }

@@ -146,3 +146,33 @@ public class LinkRemoverTests : IDisposable
         Assert.False(Directory.Exists(targetA));
     }
 }
+
+public class LinkRemoverMissingLinkTests : IDisposable
+{
+    private readonly string _root;
+
+    public LinkRemoverMissingLinkTests()
+    {
+        _root = Path.Combine(Path.GetTempPath(), $"link-manager-rmmiss-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_root);
+    }
+
+    public void Dispose()
+    {
+        try { Directory.Delete(_root, recursive: true); } catch (IOException) { }
+    }
+
+    [Fact]
+    public void RemoveWithLink_on_a_missing_link_still_unregisters()
+    {
+        // 登记的链接路径已不存在（用户手工删了链接）：确认删除应清理登记而非报错
+        var registry = LinkRegistry.Load(rootDirectory: _root);
+        registry.Add(new LinkEntry { Source = Path.Combine(_root, "gone-link"), Target = @"F:\Data", Type = "junction" });
+        registry.Save();
+
+        var removed = LinkRemover.RemoveWithLink(registry, Path.Combine(_root, "gone-link"), confirmDeleteLink: true);
+
+        Assert.True(removed);
+        Assert.Empty(LinkRegistry.Load(rootDirectory: _root).Entries);
+    }
+}

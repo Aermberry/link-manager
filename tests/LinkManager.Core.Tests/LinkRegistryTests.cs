@@ -167,7 +167,7 @@ public class LinkRegistryLocationTests : IDisposable
     [Fact]
     public void Explicit_root_directory_still_wins_over_settings()
     {
-        // registryRoot 非空 = 显式指定（CLI --registry-root 场景），优先于设置
+        // registryRoot 非空 = 显式指定（测试与嵌入方场景），优先于设置
         var registry = LinkRegistry.Load(rootDirectory: _root);
 
         Assert.Equal(_defaultRegistryFile, registry.FilePath);
