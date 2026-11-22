@@ -87,6 +87,14 @@ public class LinkRegistryTests : IDisposable
 
         Assert.StartsWith(_root, registry.FilePath);
     }
+    [Fact]
+    public void Save_roundtrips_through_the_default_file_path_helper()
+    {
+        var registry = LinkRegistry.Load(_root);
+
+        Assert.Equal(Path.Combine(_root, "linkmgr", "registry.json"), registry.FilePath);
+        Assert.Equal(Path.Combine(registry.RootDirectory, "linkmgr", "registry.json"), registry.FilePath);
+    }
 
     [Fact]
     public void Load_creates_the_registry_file_on_first_run()

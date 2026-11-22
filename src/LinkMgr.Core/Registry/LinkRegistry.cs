@@ -44,8 +44,10 @@ public sealed class LinkRegistry
     public const string DefaultFileName = "registry.json";
 
     /// <summary>默认登记文件完整路径（不触发创建）。产品默认根为用户 AppData 目录。</summary>
-    public static string DefaultFilePath =>
-        Path.Combine(GetDefaultRoot(), DefaultFolderName, DefaultFileName);
+    public static string DefaultFilePath => FileAt(GetDefaultRoot());
+
+    private static string FileAt(string root) =>
+        Path.Combine(root, DefaultFolderName, DefaultFileName);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -70,7 +72,7 @@ public sealed class LinkRegistry
     public static LinkRegistry Load(string? rootDirectory = null)
     {
         var root = rootDirectory ?? GetDefaultRoot();
-        var file = Path.Combine(root, DefaultFolderName, DefaultFileName);
+        var file = FileAt(root);
 
         if (!File.Exists(file))
         {
