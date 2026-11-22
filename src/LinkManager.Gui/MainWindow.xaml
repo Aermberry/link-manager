@@ -37,6 +37,7 @@
         </Grid>
 
         <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button x:Name="WizardButton" Content="迁移向导…" Padding="14,4" Margin="0,0,8,0" Click="WizardButton_Click" />
             <Button x:Name="CreateButton" Content="创建" Padding="14,4" Margin="0,0,8,0" Click="CreateButton_Click" />
             <Button x:Name="RefreshButton" Content="刷新健康检查" Padding="10,4" />
         </StackPanel>
