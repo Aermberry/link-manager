@@ -50,12 +50,17 @@ jobs:
           -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
 
       - name: Name asset for the tag
+        # GUI ships as a zip: the IJW workaround (dotnet/wpf#11842) publishes
+        # loose DLLs next to the exe, which only travel together if packaged;
+        # scoop extracts a zip asset so the DLLs land in the app dir.
+        # Zip root holds the files directly (no nesting), so the manifest needs
+        # no extract_dir.
         if: startsWith(github.ref, 'refs/tags/')
         env:
           TAG_NAME: ${{ github.ref_name }}
         run: |
           Copy-Item "src/LinkManager.Cli/bin/Release/net11.0-windows/win-x64/publish/LinkManager.Cli.exe" "link-manager-$env:TAG_NAME-win-x64.exe"
-          Copy-Item "src/LinkManager.Gui/bin/Release/net11.0-windows/win-x64/publish/LinkManager.Gui.exe" "link-manager-gui-$env:TAG_NAME-win-x64.exe"
+          Compress-Archive -Path "src/LinkManager.Gui/bin/Release/net11.0-windows/win-x64/publish/*" -DestinationPath "link-manager-gui-$env:TAG_NAME-win-x64.zip" -CompressionLevel Optimal
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -65,4 +70,4 @@ jobs:
           generate_release_notes: true
           files: |
             link-manager-${{ github.ref_name }}-win-x64.exe
-            link-manager-gui-${{ github.ref_name }}-win-x64.exe
+            link-manager-gui-${{ github.ref_name }}-win-x64.zip
