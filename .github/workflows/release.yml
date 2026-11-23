@@ -1,0 +1,51 @@
+# Release pipeline: tag push (v*) -> build -> test -> publish -> GitHub Release.
+# workflow_dispatch runs build+test only: the publish/rename/Release steps are
+# tag-gated below, so a manual dispatch never creates a Release.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET SDK
+        # Pinned to match global.json (11.0.100, rollForward latestFeature);
+        # not relying on runner preinstalls.
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 11.0.100
+
+      - name: Build (Release)
+        run: dotnet build -c Release
+
+      - name: Test
+        run: dotnet test
+
+      - name: Publish CLI single-file exe
+        if: startsWith(github.ref, 'refs/tags/')
+        run: dotnet publish src/LinkManager.Cli/LinkManager.Cli.csproj -c Release
+
+      - name: Name asset for the tag
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: Copy-Item "src/LinkManager.Cli/bin/Release/net11.0/win-x64/publish/LinkManager.Cli.exe" "link-manager-$env:TAG_NAME-win-x64.exe"
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v3
+        with:
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: link-manager-${{ github.ref_name }}-win-x64.exe
