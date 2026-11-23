@@ -10,3 +10,6 @@ obj/
 TestResults/
 .agents/tmp/
 .agents/
+.claude/
+.codebuddy/
+.trae/
