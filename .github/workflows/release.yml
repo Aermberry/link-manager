@@ -40,7 +40,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         env:
           TAG_NAME: ${{ github.ref_name }}
-        run: Copy-Item "src/LinkManager.Cli/bin/Release/net11.0/win-x64/publish/LinkManager.Cli.exe" "link-manager-$env:TAG_NAME-win-x64.exe"
+        run: Copy-Item "src/LinkManager.Cli/bin/Release/net11.0-windows/win-x64/publish/LinkManager.Cli.exe" "link-manager-$env:TAG_NAME-win-x64.exe"
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
