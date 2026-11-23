@@ -36,11 +36,25 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: dotnet publish src/LinkManager.Cli/LinkManager.Cli.csproj -c Release
 
+      - name: Publish GUI single-file exe
+        # GUI csproj has no publish profile; all single-file flags come from the
+        # command line. IncludeNativeLibrariesForSelfExtract bundles the WPF
+        # native DLLs (wpfgfx_cor3 etc.) into the exe so the single-asset scoop
+        # download runs standalone (matches the CLI csproj Release settings).
+        if: startsWith(github.ref, 'refs/tags/')
+        run: >-
+          dotnet publish src/LinkManager.Gui/LinkManager.Gui.csproj -c Release
+          -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+
       - name: Name asset for the tag
         if: startsWith(github.ref, 'refs/tags/')
         env:
           TAG_NAME: ${{ github.ref_name }}
-        run: Copy-Item "src/LinkManager.Cli/bin/Release/net11.0-windows/win-x64/publish/LinkManager.Cli.exe" "link-manager-$env:TAG_NAME-win-x64.exe"
+        run: |
+          Copy-Item "src/LinkManager.Cli/bin/Release/net11.0-windows/win-x64/publish/LinkManager.Cli.exe" "link-manager-$env:TAG_NAME-win-x64.exe"
+          Copy-Item "src/LinkManager.Gui/bin/Release/net11.0-windows/win-x64/publish/LinkManager.Gui.exe" "link-manager-gui-$env:TAG_NAME-win-x64.exe"
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
@@ -48,4 +62,6 @@ jobs:
         with:
           name: ${{ github.ref_name }}
           generate_release_notes: true
-          files: link-manager-${{ github.ref_name }}-win-x64.exe
+          files: |
+            link-manager-${{ github.ref_name }}-win-x64.exe
+            link-manager-gui-${{ github.ref_name }}-win-x64.exe
