@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo.png" width="240" alt="link-manager logo"></p>
+
 # link-manager
 
 **把「C 盘目录搬去其他盘 + 原地回指」这件易错的事，变成向导式、可回滚、可审计的操作。**
