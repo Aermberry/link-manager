@@ -38,15 +38,16 @@ jobs:
 
       - name: Publish GUI single-file exe
         # GUI csproj has no publish profile; all single-file flags come from the
-        # command line. IncludeNativeLibrariesForSelfExtract bundles the WPF
-        # native DLLs (wpfgfx_cor3 etc.) into the exe so the single-asset scoop
-        # download runs standalone (matches the CLI csproj Release settings).
+        # command line. The csproj KeepIjwAssembliesOutOfBundle target keeps the
+        # IJW mixed-mode assemblies (DirectWriteForwarder/System.Printing/
+        # ijwhost, dotnet/wpf#11842) out of the bundle as loose files, so
+        # IncludeNativeLibrariesForSelfExtract is not needed and compression
+        # applies (wpfgfx_cor3 etc. stay bundled — those load fine from memory).
         if: startsWith(github.ref, 'refs/tags/')
         run: >-
           dotnet publish src/LinkManager.Gui/LinkManager.Gui.csproj -c Release
           -r win-x64 --self-contained true
           -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
-          -p:IncludeNativeLibrariesForSelfExtract=true
 
       - name: Name asset for the tag
         if: startsWith(github.ref, 'refs/tags/')
