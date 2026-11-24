@@ -8,6 +8,8 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -15,8 +17,10 @@
         <TextBlock Grid.Row="0" Text="已登记链接" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
 
         <TextBlock Grid.Row="1" Text="创建 junction" FontWeight="SemiBold" Margin="0,0,0,4" />
+        <TextBlock Grid.Row="2" Foreground="Gray" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"
+                   Text="数据已搬到新位置？填入链接处（源）与新位置（目标），直接创建链接，不搬数据。数据还在原地要搬走 → 用下方「迁移向导」。" />
 
-        <Grid Grid.Row="2" Margin="0,0,0,8">
+        <Grid Grid.Row="3" Margin="0,0,0,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
@@ -37,13 +41,13 @@
             <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" x:Name="NoteInput" Margin="0,6,0,0" />
         </Grid>
 
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,8">
-            <Button x:Name="WizardButton" Content="迁移向导…" Padding="14,4" Margin="0,0,8,0" Click="WizardButton_Click" />
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button x:Name="WizardButton" Content="迁移向导…" Padding="14,4" Margin="0,0,8,0" IsDefault="True" Click="WizardButton_Click" />
             <Button x:Name="CreateButton" Content="创建" Padding="14,4" Margin="0,0,8,0" Click="CreateButton_Click" />
             <Button x:Name="RefreshButton" Content="刷新健康检查" Padding="10,4" />
         </StackPanel>
 
-        <ListView Grid.Row="4" x:Name="EntriesList">
+        <ListView Grid.Row="5" x:Name="EntriesList">
             <ListView.View>
                 <GridView>
                     <GridViewColumn Header="状态" Width="90">
@@ -61,7 +65,7 @@
             </ListView.View>
         </ListView>
 
-        <StatusBar Grid.Row="5">
+        <StatusBar Grid.Row="6">
             <StatusBarItem>
                 <TextBlock x:Name="StatusText" Text="就绪" />
             </StatusBarItem>
