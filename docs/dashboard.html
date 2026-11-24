@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>link-manager — 功能进度工作台</title>
+<style>
+  :root {
+    --bg: #0f1420; --card: #1a2130; --line: #2a3348;
+    --text: #e6eaf2; --muted: #8b94a8; --accent: #4f8ff7;
+    --ok: #3fb96f; --warn: #e0a83a; --skip: #6b7488;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: "Segoe UI", "Microsoft YaHei", sans-serif; padding: 32px 20px; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 16px; margin-bottom: 6px; }
+  header img { width: 56px; height: 56px; }
+  h1 { font-size: 22px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; margin-left: 72px; }
+  .legend { display: flex; gap: 18px; font-size: 12px; color: var(--muted); margin-bottom: 20px; margin-left: 72px; }
+  .legend b { font-weight: 600; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  .ok { background: var(--ok); } .warn { background: var(--warn); } .skip { background: var(--skip); }
+  .ver { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 14px; }
+  .ver-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+  .tag { font-family: Consolas, monospace; font-size: 17px; font-weight: 700; color: var(--accent); }
+  .date { color: var(--muted); font-size: 12px; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--line); color: var(--muted); }
+  .badge.latest { background: var(--ok); color: #fff; }
+  ul { list-style: none; }
+  li { padding: 4px 0; font-size: 14px; line-height: 1.55; }
+  li .st { font-weight: 700; margin-right: 8px; }
+  li .st.ok { color: var(--ok); } li .st.warn { color: var(--warn); } li .st.skip { color: var(--skip); }
+  li small { color: var(--muted); }
+  .current { border-left: 3px solid var(--ok); padding-left: 12px; margin: 4px 0 14px; }
+  .current h2 { font-size: 15px; margin-bottom: 8px; color: var(--ok); }
+  footer { margin-top: 28px; color: var(--muted); font-size: 12px; text-align: center; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="logo.png" alt="logo">
+    <h1>link-manager 功能进度工作台</h1>
+  </header>
+  <div class="sub">C 盘目录搬家 + 原地回指 junction —— GUI 向导给人用，CLI 给 agent 用</div>
+  <div class="legend">
+    <span><b class="dot ok"></b>✅ 已完成，可测试</span>
+    <span><b class="dot warn"></b>🔶 部分（仅 CLI）</span>
+    <span><b class="dot skip"></b>⏸ 暂缓 / 计划中</span>
+  </div>
+
+  <div class="current">
+    <h2>当前版本 v1.0.6 可测试清单</h2>
+    <ul>
+      <li><span class="st ok">✅</span><b>迁移向导</b>（GUI 5 步）：选源 → 选目标 → 预览 dry-run 计划 → 执行 → 结果；失败自动回滚 <small>— 主路径，搬家用这个</small></li>
+      <li><span class="st ok">✅</span><b>创建 junction</b>（GUI 表单）：数据已在新位置时直接建链接并登记，不搬数据 <small>— 表单上方有分工说明</small></li>
+      <li><span class="st ok">✅</span><b>健康检查</b>（GUI）："刷新健康检查"，ok / broken / missing / disguised 四态</li>
+      <li><span class="st ok">✅</span><b>登记列表</b>（GUI）：已登记链接一览 + 备注</li>
+      <li><span class="st ok">✅</span><b>CLI 全命令</b>：migrate / create / ls / scan / note / remove / config / version / help，支持 --json 与 --registry 沙箱隔离 <small>— 退出码约定见 docs/cli-conventions.md</small></li>
+      <li><span class="st warn">🔶</span><b>扫描登记</b>：仅 CLI（<code>link-manager scan &lt;目录&gt;</code>），GUI 入口暂缓（2026-11-24 拍板）</li>
+      <li><span class="st skip">⏸</span><b>GitHub Actions 构建发包优化</b>：已有 tag→测试→打包→Release 流水线，进一步优化计划中</li>
+    </ul>
+  </div>
+
+  <div class="ver">
+    <div class="ver-head">
+      <span class="tag">v1.0.6</span><span class="badge latest">当前</span>
+      <span class="date">2026-11-24</span>
+      <a class="badge" href="https://github.com/Aermberry/link-manager/releases/tag/v1.0.6">Release</a>
+    </div>
+    <ul>
+      <li><span class="st ok">✅</span>GUI 主界面分工标注：创建表单加"不搬数据"说明，迁移向导按钮设默认强调 <small>— 解决两入口看似重叠的困惑</small></li>
+    </ul>
+  </div>
+
+  <div class="ver">
+    <div class="ver-head">
+      <span class="tag">v1.0.5</span>
+      <span class="date">2026-11-23</span>
+      <a class="badge" href="https://github.com/Aermberry/link-manager/releases/tag/v1.0.5">Release</a>
+    </div>
+    <ul>
+      <li><span class="st ok">✅</span>应用图标（三层齐备）：exe 图标 + 窗口标题栏图标（pack URI 嵌入修复）+ 仓库 logo</li>
+    </ul>
+  </div>
+
+  <div class="ver">
+    <div class="ver-head">
+      <span class="tag">v1.0.4</span>
+      <span class="date">2026-11-23</span>
+      <a class="badge" href="https://github.com/Aermberry/link-manager/releases/tag/v1.0.4">Release</a>
+    </div>
+    <ul>
+      <li><span class="st ok">✅</span>exe 应用图标（ApplicationIcon，多尺寸 ico 自项目 logo 生成）<small>— 窗口图标同版发现问题，v1.0.5 修复</small></li>
+    </ul>
+  </div>
+
+  <div class="ver">
+    <div class="ver-head">
+      <span class="tag">v1.0.3</span>
+      <span class="date">2026-11-23</span>
+      <a class="badge" href="https://github.com/Aermberry/link-manager/releases/tag/v1.0.3">Release</a>
+    </div>
+    <ul>
+      <li><span class="st ok">✅</span>scoop 安装包形态修复：GUI 改 zip 资产（exe + 散文件 DLL），bucket manifest 同步，GUI 可通过 scoop 正常安装</li>
+    </ul>
+  </div>
+
+  <div class="ver">
+    <div class="ver-head">
+      <span class="tag">v1.0.2</span>
+      <span class="date">2026-11-23</span>
+      <a class="badge" href="https://github.com/Aermberry/link-manager/releases/tag/v1.0.2">Release</a>
+    </div>
+    <ul>
+      <li><span class="st ok">✅</span>GUI 首次进发布包；规避 .NET 11 官方 bug dotnet/wpf#11842（IJW 程序集排除出单文件 bundle）</li>
+    </ul>
+  </div>
+
+  <div class="ver">
+    <div class="ver-head">
+      <span class="tag">v1.0.1</span>
+      <span class="date">2026-11-23</span>
+      <a class="badge" href="https://github.com/Aermberry/link-manager/releases/tag/v1.0.1">Release</a>
+    </div>
+    <ul>
+      <li><span class="st ok">✅</span>CI 发布流水线接入 GUI：Release 同时出 CLI exe + GUI 包 <small>— v1.0.0 仅 CLI</small></li>
+    </ul>
+  </div>
+
+  <div class="ver">
+    <div class="ver-head">
+      <span class="tag">v1.0.0</span>
+      <span class="date">2026-11-23</span>
+      <a class="badge" href="https://github.com/Aermberry/link-manager/releases/tag/v1.0.0">Release</a>
+    </div>
+    <ul>
+      <li><span class="st ok">✅</span>首个公开发布：CLI 单文件 exe（migrate / create / ls / scan / note / remove / config 全命令），172 测试全绿</li>
+      <li><span class="st ok">✅</span>仓库转公开（三轮 git 历史隐私清洗后），README 重写 + MIT LICENSE + 项目 logo</li>
+      <li><span class="st ok">✅</span>TreasuryGate scoop bucket 接入（autoupdate）</li>
+    </ul>
+  </div>
+
+  <footer>本页随版本发布手动更新 · 数据来源：GitHub Releases / 仓库 git 历史 · <a href="https://github.com/Aermberry/link-manager">Aermberry/link-manager</a></footer>
+</div>
+</body>
+</html>

@@ -91,6 +91,10 @@ dotnet publish src/LinkManager.Cli/LinkManager.Cli.csproj -c Release
 
 发布产物：`src/LinkManager.Cli/bin/Release/net11.0/win-x64/publish/LinkManager.Cli.exe` —— 自包含单文件（运行时内嵌、压缩启用），无需安装 .NET。
 
+## 功能进度
+
+各版本功能与可测试项汇总见 [功能进度工作台](docs/dashboard.html)。
+
 ## 项目来由
 
 本仓库前身为一次性迁移脚本 data_mover（OpenMausBot 数据迁移），完整历史见 `archive/data-mover` 分支。
