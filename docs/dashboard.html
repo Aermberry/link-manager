@@ -55,13 +55,41 @@
   <div class="current">
     <h2>当前版本 v1.0.6 可测试清单</h2>
     <ul>
-      <li><span class="st ok">✅</span><b>迁移向导</b>（GUI 5 步）：选源 → 选目标 → 预览 dry-run 计划 → 执行 → 结果；失败自动回滚 <small>— 主路径，搬家用这个</small></li>
-      <li><span class="st ok">✅</span><b>创建 junction</b>（GUI 表单）：数据已在新位置时直接建链接并登记，不搬数据 <small>— 表单上方有分工说明</small></li>
-      <li><span class="st ok">✅</span><b>健康检查</b>（GUI）："刷新健康检查"，ok / broken / missing / disguised 四态</li>
-      <li><span class="st ok">✅</span><b>登记列表</b>（GUI）：已登记链接一览 + 备注</li>
-      <li><span class="st ok">✅</span><b>CLI 全命令</b>：migrate / create / ls / scan / note / remove / config / version / help，支持 --json 与 --registry 沙箱隔离 <small>— 退出码约定见 docs/cli-conventions.md</small></li>
-      <li><span class="st warn">🔶</span><b>扫描登记</b>：仅 CLI（<code>link-manager scan &lt;目录&gt;</code>），GUI 入口暂缓（2026-11-24 拍板）</li>
+      <li><span class="st ok">✅</span><b>迁移向导</b>（GUI 5 步）：选源 → 选目标 → 预览 dry-run 计划 → 执行 → 结果；失败自动回滚 <small>— 主路径，搬家用这个</small><br><small>🔶 实测 2026-11-25（本机 scoop 1.0.6）：第 1/2/3 步真跑走通，预览完整呈现 dry-run 计划、护栏阻断原因中文展示、「确认执行」真实禁用；第 4/5 步因本机 magpie/OpenMausBot 运行中被护栏拒绝（按设计，未绕过）——见下方实测报告</small></li>
+      <li><span class="st ok">✅</span><b>创建 junction</b>（GUI 表单）：数据已在新位置时直接建链接并登记，不搬数据 <small>— 表单上方有分工说明</small><br><small>✅ 实测 2026-11-25：创建+登记真跑通过；发现表单提示与实现语义相反（照提示填必报「源路径不存在」），见实测报告</small></li>
+      <li><span class="st ok">✅</span><b>健康检查</b>（GUI）："刷新健康检查"，ok / broken / missing / disguised 四态 <small>— 实测 2026-11-25：ok↔broken 往返真跑通过（目标改名即「断链」，改回即「正常」）</small></li>
+      <li><span class="st ok">✅</span><b>登记列表</b>（GUI）：已登记链接一览 + 备注 <small>— 实测 2026-11-25：条目+备注显示真跑通过</small></li>
+      <li><span class="st ok">✅</span><b>CLI 全命令</b>：migrate / create / ls / scan / note / remove / config / version / help，支持 --json 与 --registry 沙箱隔离 <small>— 退出码约定见 docs/cli-conventions.md；实测 2026-11-25：除 migrate 执行链路（护栏阻断）外全命令真跑通过，退出码 0/1/2/3/4/64 全部吻合约定；发现 version 打印 1.0.0、note 的 --json 信封 command 字段误为 "create"</small></li>
+      <li><span class="st warn">🔶</span><b>扫描登记</b>：仅 CLI（<code>link-manager scan &lt;目录&gt;</code>），GUI 入口暂缓（2026-11-24 拍板）<small>— 实测 2026-11-25：scan --yes 真跑通过，发现并登记 2 条 junction</small></li>
       <li><span class="st skip">⏸</span><b>GitHub Actions 构建发包优化</b>：已有 tag→测试→打包→Release 流水线，进一步优化计划中</li>
+    </ul>
+  </div>
+
+  <div class="ver">
+    <div class="ver-head">
+      <span class="tag">v1.0.6 实测报告</span><span class="badge">2026-11-25</span>
+      <span class="date">本机 scoop 安装 1.0.6 真跑 · 测试数据全部落在一次性目录并已清理 · 真实登记表实测前后均为空表（sha256 9e402c89…）</span>
+    </div>
+    <ul>
+      <li><span class="st ok">✅</span><b>CLI 全命令</b>（除 migrate 执行）：version / help / config / ls / create / note / remove / scan 全部真跑，全程 <code>--registry</code> 沙箱 + <code>--json</code>；退出码 0/1/2/3/4/64 逐个构造复现，全部与 cli-conventions.md 吻合；junction 经 cmd <code>dir</code> 验证为 <code>&lt;JUNCTION&gt;</code> 且穿链读文件成功 <small>— 发现：① version 打印 1.0.0（程序集版本未随发版 bump，已知偏差）；② <code>note</code> 的 --json 信封 <code>command</code> 字段误为 "create"（数据本身正确）</small></li>
+      <li><span class="st warn">🔶</span><b>CLI migrate 全链路</b>：dry-run 计划 8 步完整输出；<code>--execute</code> 被护栏拒绝（退出码 2，本机 magpie / OpenMausBot 运行中）——护栏按设计生效，未杀进程绕过；复制→删源→回指→登记链路本次未能走通</li>
+      <li><span class="st warn">🔶</span><b>迁移向导（GUI 5 步）</b>：第 1/2/3 步真跑走通（选源 → 选目标 → 预览）；预览完整显示 dry-run 计划与阻断原因、「确认执行」按钮真实禁用；第 4/5 步因上述护栏阻断未执行 <small>— 截图：wizard-step1-source / wizard-step2-target / wizard-step3-preview-blocked.png</small></li>
+      <li><span class="st ok">✅</span><b>创建 junction（GUI 表单）</b>：点「创建」即建 junction 并自动登记：状态栏「已创建 junction…（已自动登记）」、列表即现条目、cmd <code>dir</code> 显示 <code>&lt;JUNCTION&gt;</code> <small>— 实测发现：表单提示「填入链接处（源）与新位置（目标）」与实现语义相反，照提示填必报「源路径不存在」；正确填法：源=数据真实位置，目标=链接处（见 create-form-hint-order-error.png / create-junction-success.png）</small></li>
+      <li><span class="st ok">✅</span><b>健康检查（GUI）</b>：「刷新健康检查」ok→目标目录改名→「断链」（状态栏「1 条异常」）→改回→「正常」，往返真跑 <small>— 截图：health-ok / health-broken / health-restored-ok.png</small></li>
+      <li><span class="st ok">✅</span><b>登记列表（GUI）</b>：状态/源/目标/类型/备注五列正常显示条目 <small>— 截图：registry-list-with-entry.png</small></li>
+      <li><span class="st ok">✅</span><b>扫描登记（仅 CLI）</b>：<code>scan E:\lm-v106-verify --yes --registry …\sb</code> 退出码 0，发现 2 条 junction、<code>importedCount=2</code> 登记入沙箱表</li>
+      <li><span class="st skip">⏸</span><b>GitHub Actions 构建发包优化</b>：计划中，本次未变</li>
+      <li>
+        截图（docs/screenshots/v1.0.6/）：
+        <div>
+          <img src="screenshots/v1.0.6/wizard-step1-source.png" alt="向导第1步" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+          <img src="screenshots/v1.0.6/wizard-step2-target.png" alt="向导第2步" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+          <img src="screenshots/v1.0.6/wizard-step3-preview-blocked.png" alt="向导第3步被护栏阻断" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+          <img src="screenshots/v1.0.6/create-junction-success.png" alt="GUI 创建 junction 成功" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+          <img src="screenshots/v1.0.6/health-broken.png" alt="健康检查断链" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+          <img src="screenshots/v1.0.6/registry-list-with-entry.png" alt="登记列表" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+        </div>
+      </li>
     </ul>
   </div>
 
