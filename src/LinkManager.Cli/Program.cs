@@ -563,7 +563,7 @@ static int RunNote(IReadOnlyList<string> positional, bool json, string? registry
     if (json)
     {
         var entry = registry.FindEntry(source) ?? throw new InvalidOperationException("UpdateNote 成功但条目不可见");
-        Console.WriteLine(CliJson.Serialize(CliJson.Create(entry)));
+        Console.WriteLine(CliJson.Serialize(CliJson.Note(entry)));
         return ExitCodes.Success;
     }
 

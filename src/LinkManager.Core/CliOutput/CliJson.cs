@@ -237,10 +237,18 @@ public static class CliJson
         };
     }
 
-    public static CliEnvelope<CliLinkEntry> Create(LinkEntry entry) => new()
+    /// <summary>create 的结构化结果：新登记条目 + 即时健康状态（command 标 create）。</summary>
+    public static CliEnvelope<CliLinkEntry> Create(LinkEntry entry) => EntryEnvelope("create", entry);
+
+    /// <summary>note 的结构化结果：更新后的条目，形状同 create（command 标 note——
+    /// 曾误用 create 包络，agent 按 .command 判读会拿到错误命令名）。</summary>
+    public static CliEnvelope<CliLinkEntry> Note(LinkEntry entry) => EntryEnvelope("note", entry);
+
+    /// <summary>条目型包络（create/note 共用形状，仅 command 不同）。</summary>
+    private static CliEnvelope<CliLinkEntry> EntryEnvelope(string command, LinkEntry entry) => new()
     {
         Ok = true,
-        Command = "create",
+        Command = command,
         Data = new CliLinkEntry
         {
             Source = entry.Source,

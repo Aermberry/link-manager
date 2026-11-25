@@ -139,6 +139,31 @@ public class CliJsonTests : IDisposable
         Assert.Equal("junction", data.GetProperty("type").GetString());
         Assert.Equal("missing", data.GetProperty("status").GetString());
     }
+
+    [Fact]
+    public void Note_envelope_is_labeled_note_not_create()
+    {
+        // 回归（v1.0.6 实测发现）：note 曾复用 create 包络，--json 输出 "command":"create"，
+        // agent 按 .command 判读拿到错误命令名。数据形状同 create，command 必须标 note。
+        var entry = new LinkEntry
+        {
+            Source = @"C:\No\Such\Link",
+            Target = @"F:\No\Such\Real",
+            Type = "junction",
+            Note = "新备注",
+        };
+
+        var json = CliJson.Serialize(CliJson.Note(entry));
+
+        var doc = JsonDocument.Parse(json);
+        Assert.True(doc.RootElement.GetProperty("ok").GetBoolean());
+        Assert.Equal("note", doc.RootElement.GetProperty("command").GetString());
+        var data = doc.RootElement.GetProperty("data");
+        Assert.Equal(@"C:\No\Such\Link", data.GetProperty("source").GetString());
+        Assert.Equal(@"F:\No\Such\Real", data.GetProperty("target").GetString());
+        Assert.Equal("新备注", data.GetProperty("note").GetString());
+        Assert.Equal("missing", data.GetProperty("status").GetString());
+    }
 }
 
 /// <summary>scan 命令 --json 输出契约：候选列表 + 汇总统计，jq 可解析（issue #15）。</summary>

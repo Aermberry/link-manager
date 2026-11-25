@@ -1,5 +1,7 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using LinkManager.Core.Migration;
 using LinkManager.Core.Registry;
 
@@ -8,8 +10,9 @@ namespace LinkManager.Gui;
 /// <summary>
 /// 五步迁移向导窗口：UI 只做步骤呈现与目录选择，全部业务走
 /// <see cref="MigrationWizardModel"/>（其内只调 Core）。
-/// 前置检查失败（进程占用、目标非空等）在预览步以中文原因展示并阻断执行；
-/// 执行瞬间失败（竞态）回预览步以红色中文原因展示。
+/// 顶部 1-5 步进度指示条高亮当前步；预览/执行两步为危险步骤（删源、回指），
+/// 红色警示强化。前置检查失败（进程占用、目标非空等）在预览步以中文原因展示
+/// 并阻断执行；执行瞬间失败（竞态）回预览步以红色中文原因展示。
 /// </summary>
 public partial class MigrationWizardWindow : Window
 {
@@ -29,6 +32,8 @@ public partial class MigrationWizardWindow : Window
         PreviewPanel.Visibility = _model.CurrentStep == WizardStep.Preview ? Visibility.Visible : Visibility.Collapsed;
         ExecutePanel.Visibility = _model.CurrentStep == WizardStep.Execute ? Visibility.Visible : Visibility.Collapsed;
         ResultPanel.Visibility = _model.CurrentStep == WizardStep.Result ? Visibility.Visible : Visibility.Collapsed;
+
+        RenderStepIndicator();
 
         StepTitle.Text = _model.CurrentStep switch
         {
@@ -54,12 +59,12 @@ public partial class MigrationWizardWindow : Window
                 BlockersText.Text = string.IsNullOrEmpty(_model.ErrorMessage)
                     ? "✓ 前置检查全部通过，可以执行迁移。"
                     : "";
-                BlockersText.Foreground = System.Windows.Media.Brushes.ForestGreen;
+                BlockersText.Foreground = FindResource("AccentBrush") as Brush ?? Brushes.Green;
             }
             else
             {
                 BlockersText.Text = "无法执行，原因：\n" + string.Join("\n", lines);
-                BlockersText.Foreground = System.Windows.Media.Brushes.Firebrick;
+                BlockersText.Foreground = FindResource("DangerBrush") as Brush ?? Brushes.Firebrick;
             }
         }
 
@@ -82,6 +87,81 @@ public partial class MigrationWizardWindow : Window
             WizardStep.Result => "完成",
             _ => "下一步",
         };
+    }
+
+    /// <summary>
+    /// 渲染顶部步骤指示条：每步一个圆点数字 + 名称，当前步强调、已完成步淡色、
+    /// 未到步灰显；第 3/4 步（预览/执行，含删源与回指）为危险步，红点标记。
+    /// </summary>
+    private void RenderStepIndicator()
+    {
+        var accent = (Brush)FindResource("AccentBrush");
+        var danger = (Brush)FindResource("DangerBrush");
+        var subtle = (Brush)FindResource("SubtleTextBrush");
+        var border = (Brush)FindResource("CardBorderBrush");
+        var labels = new[] { "选源目录", "选目标", "预览计划", "执行迁移", "结果" };
+        var dangerSteps = new HashSet<WizardStep> { WizardStep.Preview, WizardStep.Execute };
+        var current = (int)_model.CurrentStep;
+
+        StepIndicatorPanel.Children.Clear();
+        for (var i = 0; i < labels.Length; i++)
+        {
+            var step = (WizardStep)i;
+            var isCurrent = i == current;
+            var isDone = i < current;
+            var isDanger = dangerSteps.Contains(step);
+
+            var circle = new Border
+            {
+                Width = 26,
+                Height = 26,
+                CornerRadius = new CornerRadius(13),
+                VerticalAlignment = VerticalAlignment.Center,
+                Background = isCurrent ? (isDanger ? danger : accent)
+                    : isDone ? (isDanger ? danger : accent)
+                    : Brushes.White,
+                BorderBrush = isCurrent || isDone ? (isDanger ? danger : accent) : border,
+                BorderThickness = new Thickness(1),
+            };
+            var number = new TextBlock
+            {
+                Text = (i + 1).ToString(),
+                Foreground = isCurrent || isDone ? Brushes.White : subtle,
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 12,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            circle.Child = number;
+
+            var label = new TextBlock
+            {
+                Text = labels[i],
+                Margin = new Thickness(5, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 12.5,
+                FontWeight = isCurrent ? FontWeights.SemiBold : FontWeights.Normal,
+                Foreground = isCurrent ? (isDanger ? danger : accent) : isDone ? subtle : subtle,
+            };
+
+            StepIndicatorPanel.Children.Add(new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(i == 0 ? 0 : 14, 0, 0, 0),
+                Children = { circle, label },
+            });
+
+            if (i < labels.Length - 1)
+            {
+                StepIndicatorPanel.Children.Add(new TextBlock
+                {
+                    Text = "—",
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(8, 0, 0, 0),
+                    Foreground = border,
+                });
+            }
+        }
     }
 
     private string BuildSummary(MigrationResult result)
