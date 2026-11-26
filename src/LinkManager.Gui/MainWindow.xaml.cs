@@ -1,11 +1,12 @@
 ﻿using System.Windows;
+using System.Windows.Media;
 using LinkManager.Core.Health;
 using LinkManager.Core.Links;
 using LinkManager.Core.Registry;
 
 namespace LinkManager.Gui;
 
-/// <summary>列表行视图模型：登记条目 + 健康状态。</summary>
+/// <summary>列表行视图模型：登记条目 + 健康状态（视觉映射见 <see cref="EntryStatusVisual"/>）。</summary>
 public sealed class EntryRow
 {
     public required LinkEntry Entry { get; init; }
@@ -18,13 +19,14 @@ public sealed class EntryRow
 
     public string StatusText => Status.ToChinese();
 
-    public System.Windows.Media.Brush StatusBrush
+    public string StatusGlyph => EntryStatusVisual.Glyph(Status);
+
+    public Brush StatusBrush
     {
         get
         {
-            var (r, g, b) = Status.ToRgb();
-            return new System.Windows.Media.SolidColorBrush(
-                System.Windows.Media.Color.FromRgb(r, g, b));
+            var (r, g, b) = EntryStatusVisual.Color(Status);
+            return new SolidColorBrush(Color.FromRgb(r, g, b));
         }
     }
 }
@@ -76,13 +78,14 @@ public partial class MainWindow : Window
         try
         {
             var registry = LinkRegistry.Load();
-            EntriesList.ItemsSource = registry.Entries
+            var rows = registry.Entries
                 .Select(e => new EntryRow { Entry = e, Status = LinkHealth.Check(e.Source, e.Type) })
                 .ToList();
-            var broken = ((List<EntryRow>)EntriesList.ItemsSource).Count(r => r.Status != LinkStatus.Ok);
-            StatusText.Text = broken > 0
-                ? $"{registry.Entries.Count} 条登记，{broken} 条异常 · {registry.FilePath}"
-                : $"{registry.Entries.Count} 条登记，全部正常 · {registry.FilePath}";
+            EntriesList.ItemsSource = rows;
+            var broken = rows.Count(r => r.Status != LinkStatus.Ok);
+            StatusText.Text = MainWindowLogic.StatusLine(registry.Entries.Count, broken, registry.FilePath);
+            EmptyState.Visibility = registry.Entries.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            EntriesList.Visibility = registry.Entries.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         }
         catch (RegistryCorruptException ex)
         {
@@ -101,6 +104,6 @@ public partial class MainWindow : Window
     private void ShowRegistryError(string title, string message)
     {
         StatusText.Text = $"{title}：{message}";
-        MessageBox.Show(this, message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        DialogMessage.Show(this, DialogMessage.Kind.Warning, title, message);
     }
 }

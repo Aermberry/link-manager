@@ -71,6 +71,7 @@ public partial class MigrationWizardWindow : Window
         if (_model.CurrentStep == WizardStep.Result && _model.Result is { } result)
         {
             ResultBox.Text = BuildSummary(result);
+            RenderResultBanner(result.Ok);
         }
 
         BackButton.IsEnabled = _model.CurrentStep is WizardStep.Target or WizardStep.Preview;
@@ -164,6 +165,39 @@ public partial class MigrationWizardWindow : Window
         }
     }
 
+    /// <summary>
+    /// 结果步横幅：成功绿（✓ 迁移完成，原位置已是链接）/ 失败红（✗ 迁移未完成）。
+    /// 失败时正文明细已在预览步以红色原因展示，这里只给结论行。
+    /// </summary>
+    private void RenderResultBanner(bool ok)
+    {
+        var okBrush = FindResource("AccentBrush") as Brush ?? Brushes.RoyalBlue;
+        var okBg = FindResource("DangerBackgroundBrush") as Brush;
+        // 成功横幅用 Fluent 绿系（与状态列 Ok 一致）；失败沿用危险红系资源
+        var green = new SolidColorBrush(Color.FromRgb(0x0F, 0x7B, 0x0F));
+        var greenBg = new SolidColorBrush(Color.FromRgb(0xF3, 0xFA, 0xF3));
+        var greenBorder = new SolidColorBrush(Color.FromRgb(0xC5, 0xE1, 0xC5));
+
+        if (ok)
+        {
+            ResultBannerGlyph.Text = "✓";
+            ResultBannerGlyph.Foreground = green;
+            ResultBannerText.Text = "迁移完成：数据已搬到目标位置，原位置已改写为链接（可在主窗口登记列表查看）。";
+            ResultBannerText.Foreground = green;
+            ResultBanner.Background = greenBg;
+            ResultBanner.BorderBrush = greenBorder;
+        }
+        else
+        {
+            ResultBannerGlyph.Text = "✗";
+            ResultBannerGlyph.Foreground = FindResource("DangerBrush") as Brush ?? Brushes.Firebrick;
+            ResultBannerText.Text = "迁移未完成：原因见上方红色说明（返回预览步可重试）。";
+            ResultBannerText.Foreground = FindResource("DangerBrush") as Brush ?? Brushes.Firebrick;
+            ResultBanner.Background = FindResource("DangerBackgroundBrush") as Brush ?? okBg ?? Brushes.White;
+            ResultBanner.BorderBrush = FindResource("DangerBorderBrush") as Brush ?? okBrush;
+        }
+    }
+
     private string BuildSummary(MigrationResult result)
     {
         var lines = new List<string> { result.Report };
@@ -249,7 +283,7 @@ public partial class MigrationWizardWindow : Window
         }
         catch (InvalidOperationException ex)
         {
-            MessageBox.Show(this, ex.Message, "无法继续", MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogMessage.Show(this, DialogMessage.Kind.Warning, "无法继续", ex.Message);
             return;
         }
         ShowStep();

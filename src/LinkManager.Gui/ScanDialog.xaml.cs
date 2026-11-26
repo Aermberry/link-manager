@@ -21,7 +21,8 @@ public sealed class ScannedLinkRow
 /// 扫描存量链接对话框（T5 scan API 的 GUI 窗口）：选目录、深度可选、
 /// 列表展示发现的链接、勾选批量登记。只调 Core：
 /// <see cref="LinkScanner.Scan"/>（只读发现）+ <see cref="LinkImporter"/>（落登记表，
-/// 逐条查重，已登记的不会被重复导入）。
+/// 逐条查重，已登记的不会被重复导入）。校验/汇总/空状态文案在
+/// <see cref="ScanDialogLogic"/>（可单测）。
 /// </summary>
 public partial class ScanDialog : Window
 {
@@ -29,10 +30,12 @@ public partial class ScanDialog : Window
     public int ImportedCount { get; private set; }
 
     private LinkRegistry? _registry;
+    private bool _hasScannedThisSession;
 
     public ScanDialog()
     {
         InitializeComponent();
+        ApplyEmptyState();
         UpdateImportButton();
     }
 
@@ -47,39 +50,32 @@ public partial class ScanDialog : Window
 
     private void StartButton_Click(object sender, RoutedEventArgs e)
     {
-        var root = RootInput.Text.Trim();
-        if (root.Length == 0 || !Directory.Exists(root))
+        var rootError = ScanDialogLogic.ValidateRoot(RootInput.Text);
+        if (rootError is not null)
         {
-            MessageBox.Show(this, $"扫描目录不存在：{root}", "无法扫描",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            DialogMessage.Show(this, DialogMessage.Kind.Info, "无法扫描", rootError);
             return;
         }
 
-        int? maxDepth = null;
-        var depthText = DepthInput.Text.Trim();
-        if (depthText.Length > 0)
+        var root = RootInput.Text.Trim();
+        var depth = ScanDialogLogic.ParseDepth(DepthInput.Text, out var depthError);
+        if (depthError is not null)
         {
-            if (!int.TryParse(depthText, out var depth) || depth < 0)
-            {
-                MessageBox.Show(this, "深度需为非负整数：0 = 只扫这一层，1 = 连一层子目录；留空 = 不限深度。",
-                    "深度无效", MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-            maxDepth = depth;
+            DialogMessage.Show(this, DialogMessage.Kind.Info, "深度无效", depthError);
+            return;
         }
 
         try
         {
             _registry = LinkRegistry.Load();
-            var result = LinkScanner.Scan(root, _registry, maxDepth: maxDepth ?? -1);
+            var result = LinkScanner.Scan(root, _registry, maxDepth: depth ?? -1);
+            _hasScannedThisSession = true;
             FoundList.ItemsSource = result.Links
                 .Select(l => new ScannedLinkRow { Link = l })
                 .ToList();
-
-            var skippedNote = result.Skipped.Count > 0 ? $"，{result.Skipped.Count} 个目录无权限跳过" : "";
-            SummaryText.Text = result.Links.Count > 0
-                ? $"发现 {result.Links.Count} 条待登记链接（已登记 {result.RegisteredCount} 条不再列出，共扫过 {result.ScannedDirectoryCount} 个目录{skippedNote}）。勾选后点「登记所选」。"
-                : $"未发现待登记的链接（已登记 {result.RegisteredCount} 条，共扫过 {result.ScannedDirectoryCount} 个目录{skippedNote}）。";
+            SummaryText.Text = ScanDialogLogic.SummaryLine(
+                result.Links.Count, result.RegisteredCount, result.ScannedDirectoryCount,
+                result.Skipped.Count, hasImportedThisSession: false);
         }
         catch (RegistryCorruptException ex)
         {
@@ -91,9 +87,9 @@ public partial class ScanDialog : Window
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            MessageBox.Show(this, $"扫描失败：{ex.Message}", "无法扫描",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogMessage.Show(this, DialogMessage.Kind.Warning, "无法扫描", $"扫描失败：{ex.Message}");
         }
+        ApplyEmptyState();
         UpdateImportButton();
     }
 
@@ -107,8 +103,7 @@ public partial class ScanDialog : Window
         var selected = ((List<ScannedLinkRow>)FoundList.ItemsSource!).Where(r => r.IsSelected).ToList();
         if (selected.Count == 0)
         {
-            MessageBox.Show(this, "请先勾选要登记的链接。", "未选择",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            DialogMessage.Show(this, DialogMessage.Kind.Info, "未选择", "请先勾选要登记的链接。");
             return;
         }
 
@@ -125,9 +120,7 @@ public partial class ScanDialog : Window
             }
 
             ImportedCount = imported;
-            SummaryText.Text = imported == selected.Count
-                ? $"已登记 {imported} 条。"
-                : $"已登记 {imported} 条（其余已在登记表中，未重复登记）。";
+            SummaryText.Text = ScanDialogLogic.ImportedLine(imported, selected.Count);
             // 已登记的从候选列表移除；剩下的保持可见、取消勾选，供再次尝试
             var remaining = ((List<ScannedLinkRow>)FoundList.ItemsSource!)
                 .Where(r => !_registry.ContainsEntry(r.Link.Source))
@@ -137,7 +130,6 @@ public partial class ScanDialog : Window
                 row.IsSelected = false;
             }
             FoundList.ItemsSource = remaining;
-            UpdateImportButton();
         }
         catch (RegistryCorruptException ex)
         {
@@ -147,15 +139,33 @@ public partial class ScanDialog : Window
         {
             ShowRegistryError("登记文件读写失败", ex.Message);
         }
+        ApplyEmptyState();
+        UpdateImportButton();
+    }
+
+    /// <summary>空状态覆盖层：有候选行时隐藏；无结果时按「未扫描 / 扫过无结果」显示对应文案。</summary>
+    private void ApplyEmptyState()
+    {
+        var rowCount = FoundList.ItemsSource is List<ScannedLinkRow> rows ? rows.Count : 0;
+        var empty = ScanDialogLogic.EmptyState(_hasScannedThisSession, rowCount);
+        if (empty is null)
+        {
+            EmptyState.Visibility = Visibility.Collapsed;
+            FoundList.Visibility = Visibility.Visible;
+            return;
+        }
+
+        (EmptyTitle.Text, EmptyDetail.Text) = empty.Value;
+        EmptyState.Visibility = Visibility.Visible;
+        FoundList.Visibility = Visibility.Collapsed;
     }
 
     private void UpdateImportButton()
     {
-        var hasRegistry = _registry is not null;
-        var hasRows = FoundList.ItemsSource is List<ScannedLinkRow> rows && rows.Count > 0;
-        ImportButton.IsEnabled = hasRegistry && hasRows;
+        var rowCount = FoundList.ItemsSource is List<ScannedLinkRow> rows ? rows.Count : 0;
+        ImportButton.IsEnabled = ScanDialogLogic.ImportEnabled(_hasScannedThisSession, rowCount);
     }
 
     private void ShowRegistryError(string title, string message)
-        => MessageBox.Show(this, message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        => DialogMessage.Show(this, DialogMessage.Kind.Warning, title, message);
 }

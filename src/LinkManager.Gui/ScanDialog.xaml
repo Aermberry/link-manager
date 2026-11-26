@@ -5,20 +5,27 @@
         Height="560" Width="820" MinHeight="460" MinWidth="640"
         WindowStartupLocation="CenterOwner"
         Icon="pack://application:,,,/app.ico"
-        Background="#FAFAFB">
+        Background="#FAFAFB"
+        UseLayoutRounding="True">
     <Window.Resources>
         <SolidColorBrush x:Key="AccentBrush" Color="#0067C0" />
+        <SolidColorBrush x:Key="CardBorderBrush" Color="#E0E0E3" />
+        <SolidColorBrush x:Key="SubtleTextBrush" Color="#5D5D63" />
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
     </Window.Resources>
     <Grid Margin="16">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- 选择目录 + 深度 -->
+        <!-- 选择目录 + 深度（次级浏览按钮 + 强调开始按钮） -->
         <Grid Grid.Row="0" Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
@@ -30,49 +37,65 @@
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Text="扫描目录：" VerticalAlignment="Center" Margin="0,0,6,0" />
             <TextBox Grid.Column="1" x:Name="RootInput" VerticalAlignment="Center" />
-            <Button Grid.Column="2" x:Name="BrowseButton" Content="浏览…" Margin="8,0,0,0" Padding="10,4" Click="BrowseButton_Click" />
+            <Button Grid.Column="2" x:Name="BrowseButton" Content="浏览…" Margin="8,0,0,0" Padding="10,4"
+                    Cursor="Hand" Click="BrowseButton_Click" />
             <TextBlock Grid.Column="3" Text="深度：" VerticalAlignment="Center" Margin="14,0,6,0" />
             <TextBox Grid.Column="4" x:Name="DepthInput" Width="44" VerticalAlignment="Center"
                      ToolTip="0 = 只扫这一层；1 = 连一层子目录；留空 = 不限深度" />
-            <Button Grid.Column="5" x:Name="StartButton" Content="开始扫描" Margin="10,0,0,0" Padding="12,4"
-                    Background="{StaticResource AccentBrush}" Foreground="White" FontWeight="SemiBold"
-                    Click="StartButton_Click" />
+            <Button Grid.Column="5" x:Name="StartButton" Style="{StaticResource PrimaryButton}"
+                    Content="开始扫描" Margin="10,0,0,0" Padding="12,4" Click="StartButton_Click" />
         </Grid>
 
-        <!-- 结果列表 -->
-        <ListView Grid.Row="3" x:Name="FoundList" Margin="0,0,0,10"
-                  BorderThickness="1" BorderBrush="#E0E0E3" Background="White">
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn Header="登记" Width="46">
-                        <GridViewColumn.CellTemplate>
-                            <DataTemplate>
-                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          HorizontalAlignment="Center" />
-                            </DataTemplate>
-                        </GridViewColumn.CellTemplate>
-                    </GridViewColumn>
-                    <GridViewColumn Header="链接位置（源）" Width="300" DisplayMemberBinding="{Binding Source}" />
-                    <GridViewColumn Header="数据真实位置（目标）" Width="300" DisplayMemberBinding="{Binding Target}" />
-                    <GridViewColumn Header="类型" Width="80" DisplayMemberBinding="{Binding Type}" />
-                </GridView>
-            </ListView.View>
-        </ListView>
+        <!-- 结果列表 + 空状态覆盖层 -->
+        <Grid Grid.Row="1" Margin="0,0,0,10">
+            <ListView x:Name="FoundList" BorderThickness="1" BorderBrush="{StaticResource CardBorderBrush}"
+                      Background="White">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="登记" Width="46">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              HorizontalAlignment="Center" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="链接位置（源）" Width="300" DisplayMemberBinding="{Binding Source}" />
+                        <GridViewColumn Header="数据真实位置（目标）" Width="300" DisplayMemberBinding="{Binding Target}" />
+                        <GridViewColumn Header="类型" Width="80" DisplayMemberBinding="{Binding Type}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+
+            <!-- 空状态：未扫描（引导）或扫描完无结果（说明 + 指引） -->
+            <Border x:Name="EmptyState" Background="#FFFFFF" BorderBrush="{StaticResource CardBorderBrush}"
+                    BorderThickness="1" CornerRadius="8" Visibility="Visible">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="520">
+                    <TextBlock x:Name="EmptyGlyph" Text="⌕" FontSize="34" Foreground="{StaticResource SubtleTextBrush}"
+                               HorizontalAlignment="Center" Margin="0,0,0,10" />
+                    <TextBlock x:Name="EmptyTitle" Text="还没有扫描结果" FontSize="15" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" Margin="0,0,0,8" />
+                    <TextBlock x:Name="EmptyDetail" Foreground="{StaticResource SubtleTextBrush}" TextWrapping="Wrap"
+                               TextAlignment="Center" HorizontalAlignment="Center"
+                               Text="选择要扫描的目录后点「开始扫描」。发现的链接会列在这里，勾选后可批量登记。" />
+                </StackPanel>
+            </Border>
+        </Grid>
 
         <!-- 汇总 + 按钮 -->
-        <Grid Grid.Row="4">
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" x:Name="SummaryText" VerticalAlignment="Center"
-                       Foreground="#5D5D63" TextWrapping="Wrap" Text="选择要登记的目录，扫描发现的链接不会重复登记。" />
+                       Foreground="{StaticResource SubtleTextBrush}" TextWrapping="Wrap"
+                       Text="选择要登记的目录，扫描发现的链接不会重复登记。" />
             <Button Grid.Column="1" x:Name="CloseButton" Content="关闭" Padding="14,5"
-                    Margin="0,0,8,0" IsCancel="True" />
+                    Margin="0,0,8,0" Cursor="Hand" IsCancel="True" />
             <Button Grid.Column="2" x:Name="ImportButton" Content="登记所选" Padding="14,5"
-                    Background="{StaticResource AccentBrush}" Foreground="White" FontWeight="SemiBold"
-                    Click="ImportButton_Click" />
+                    Style="{StaticResource PrimaryButton}" Click="ImportButton_Click" />
         </Grid>
     </Grid>
 </Window>

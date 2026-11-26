@@ -29,8 +29,8 @@ public partial class CreateLinkDialog : Window
 
         if (source.Length == 0 || target.Length == 0)
         {
-            MessageBox.Show(this, "请填写数据真实位置（源）与链接位置（目标）。",
-                "缺少路径", MessageBoxButton.OK, MessageBoxImage.Information);
+            DialogMessage.Show(this, DialogMessage.Kind.Info, "缺少路径",
+                "请填写数据真实位置（源）与链接位置（目标）。");
             return;
         }
 
@@ -41,7 +41,7 @@ public partial class CreateLinkDialog : Window
         }
         catch (LinkCreateException ex)
         {
-            MessageBox.Show(this, ex.Message, "创建失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+            DialogMessage.Show(this, DialogMessage.Kind.Error, "创建失败", ex.Message);
         }
         catch (RegistryCorruptException ex)
         {
@@ -53,10 +53,10 @@ public partial class CreateLinkDialog : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "创建失败", MessageBoxButton.OK, MessageBoxImage.Error);
+            DialogMessage.Show(this, DialogMessage.Kind.Error, "创建失败", ex.Message);
         }
     }
 
     private void ShowRegistryError(string title, string message)
-        => MessageBox.Show(this, message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        => DialogMessage.Show(this, DialogMessage.Kind.Warning, title, message);
 }

@@ -13,3 +13,6 @@ TestResults/
 .claude/
 .codebuddy/
 .trae/
+
+# Local publish/verification scratch (per-session, not shipped)
+publish-test/

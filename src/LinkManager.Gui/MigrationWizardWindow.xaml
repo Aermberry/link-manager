@@ -104,9 +104,19 @@
                     <TextBlock x:Name="ExecuteDetail" Foreground="{StaticResource SubtleTextBrush}" Margin="0,12,0,0" TextWrapping="Wrap" />
                 </StackPanel>
 
-                <!-- 第 5 步：结果摘要 -->
+                <!-- 第 5 步：结果摘要（成功绿 / 失败红横幅 + 明细） -->
                 <StackPanel x:Name="ResultPanel" Visibility="Collapsed">
                     <TextBlock Text="第 5 步：迁移结果" Margin="0,0,0,10" />
+                    <Border x:Name="ResultBanner" Background="{StaticResource DangerBackgroundBrush}"
+                            BorderBrush="{StaticResource DangerBorderBrush}" BorderThickness="1"
+                            CornerRadius="6" Padding="12,9" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="ResultBannerGlyph" FontWeight="Bold" FontSize="16"
+                                       Margin="0,0,8,0" VerticalAlignment="Center" />
+                            <TextBlock x:Name="ResultBannerText" FontWeight="SemiBold" FontSize="13.5"
+                                       TextWrapping="Wrap" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
                     <TextBox x:Name="ResultBox" IsReadOnly="True" FontFamily="Consolas" FontSize="12"
                              VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" MinHeight="200"
                              Background="#FFFFFF" BorderBrush="{StaticResource CardBorderBrush}" />

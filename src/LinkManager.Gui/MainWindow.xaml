@@ -64,27 +64,46 @@
             </StackPanel>
         </Border>
 
-        <!-- 全宽登记列表（列表信息布局为列式） -->
-        <Border Grid.Row="1" Margin="14,12,14,10" Background="Transparent">
+        <!-- 全宽登记列表（列表信息布局为列式）；空状态与列表同层叠放 -->
+        <Grid Grid.Row="1" Margin="14,12,14,10">
             <ListView x:Name="EntriesList"
                       BorderThickness="1" BorderBrush="{StaticResource CardBorderBrush}">
                 <ListView.View>
                     <GridView>
-                        <GridViewColumn Header="状态" Width="86">
+                        <GridViewColumn Header="状态" Width="110">
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusBrush}" FontWeight="SemiBold" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding StatusGlyph}" FontWeight="Bold"
+                                                   Foreground="{Binding StatusBrush}" Margin="0,0,6,0" />
+                                        <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold"
+                                                   Foreground="{Binding StatusBrush}" />
+                                    </StackPanel>
                                 </DataTemplate>
                             </GridViewColumn.CellTemplate>
                         </GridViewColumn>
-                        <GridViewColumn Header="链接位置（源）" Width="290" DisplayMemberBinding="{Binding Source}" />
-                        <GridViewColumn Header="数据真实位置（目标）" Width="290" DisplayMemberBinding="{Binding Target}" />
+                        <GridViewColumn Header="链接位置（源）" Width="280" DisplayMemberBinding="{Binding Source}" />
+                        <GridViewColumn Header="数据真实位置（目标）" Width="280" DisplayMemberBinding="{Binding Target}" />
                         <GridViewColumn Header="类型" Width="80" DisplayMemberBinding="{Binding Type}" />
                         <GridViewColumn Header="备注" Width="220" DisplayMemberBinding="{Binding Note}" />
                     </GridView>
                 </ListView.View>
             </ListView>
-        </Border>
+
+            <!-- 空状态：无登记条目时盖在列表上方（引导去向导/创建/扫描） -->
+            <Border x:Name="EmptyState" Background="#FFFFFF" BorderBrush="{StaticResource CardBorderBrush}"
+                    BorderThickness="1" CornerRadius="8" Visibility="Collapsed">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="560">
+                    <TextBlock Text="○" FontSize="34" Foreground="{StaticResource SubtleTextBrush}"
+                               HorizontalAlignment="Center" Margin="0,0,0,10" />
+                    <TextBlock Text="还没有登记任何链接" FontSize="15" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" Margin="0,0,0,8" />
+                    <TextBlock Foreground="{StaticResource SubtleTextBrush}" TextWrapping="Wrap" TextAlignment="Center"
+                               HorizontalAlignment="Center" Margin="0,0,0,14"
+                               Text="把 C 盘目录搬到其他盘 → 用「迁移向导」（原位置自动变成链接）；数据已在新位置、只差一个链接 → 用「创建」；想找出电脑里已有的 junction / symlink → 用「扫描」。" />
+                </StackPanel>
+            </Border>
+        </Grid>
 
         <StatusBar Grid.Row="2" Background="#F3F3F6" BorderBrush="#E0E0E3" BorderThickness="0,1,0,0">
             <StatusBarItem>
