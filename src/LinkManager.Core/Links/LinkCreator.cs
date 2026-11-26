@@ -123,6 +123,19 @@ public static class LinkCreator
     public static void RunJunctionToolForMigration(string linkPath, string dataPath) =>
         RunJunctionTool(dataPath, linkPath);
 
+    /// <summary>按既有登记重建 junction；只操作文件系统，调用方负责保留登记条目。</summary>
+    public static void RecreateJunction(string dataPath, string linkPath) =>
+        RunJunctionTool(dataPath, linkPath);
+
+    /// <summary>按既有登记重建目录 symlink；只操作文件系统，调用方负责保留登记条目。</summary>
+    public static void RecreateSymlink(string dataPath, string linkPath, IDeveloperModeDetector? detector = null)
+    {
+        WindowsDeveloperModeDetector.Options.Require(detector ?? new WindowsDeveloperModeDetector());
+        RequireAbsolute(dataPath);
+        RequireAbsolute(linkPath);
+        RunSymlinkTool(dataPath, linkPath);
+    }
+
     private static void RunJunctionTool(string source, string target)
     {
         // 用 -EncodedCommand 传命令：路径内容不会破坏 PS 字符串，杜绝引号注入

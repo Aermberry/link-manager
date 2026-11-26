@@ -10,6 +10,7 @@
 | `ls` | `link-manager ls` | 列出登记链接与健康状态 |
 | `create` | `link-manager create <源路径> <目标路径> [备注]` | 创建 junction 并自动登记 |
 | `scan` | `link-manager scan <目录> [--yes] [--max-depth <层数>]` | 扫描存量链接，问询登记（`--yes` 全量导入） |
+| `repair` | `link-manager repair <源路径>` | 按登记表重建断链（不删除真实数据或改登记） |
 | `note` | `link-manager note <源路径> <新备注>` | 更新登记条目备注（空串清除） |
 | `remove` | `link-manager remove <源路径> --keep-link \| --delete-link [--yes]` | 删登记（`--delete-link` 连链接一起删，需 `--yes`） |
 | `config` | `link-manager config \| config set-registry <新登记文件路径>` | 显示/迁移登记文件位置 |
@@ -104,7 +105,12 @@ agent 判读建议：先按退出码分支；`--json` 模式下再读 `.ok` 与 
 {"ok":true,"command":"migrate","data":{"source":"C:\\源目录","target":"F:\\目标目录","steps":["前置检查：源目录存在（C:\\源目录）","…"],"runningProcesses":["magpie"],"executed":false}}
 ```
 
-**help**：
+**repair**（成功时返回重建后的登记条目 + 即时健康状态；未找到登记、目标不存在、链接位置被占用、相关进程运行或类型不支持均为退出码 `2` / `execution_failed`）：
+
+```json
+{"ok":true,"command":"repair","data":{"source":"C:\\链接处","target":"F:\\真实目录","type":"junction","note":"","status":"ok"}}
+```
+
 
 ```json
 {"ok":true,"command":"help","data":{"commands":[{"name":"version","description":"…"}],"options":["--json"]}}

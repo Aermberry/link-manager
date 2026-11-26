@@ -3,6 +3,7 @@ using System.Windows.Media;
 using LinkManager.Core.Health;
 using LinkManager.Core.Links;
 using LinkManager.Core.Registry;
+using LinkManager.Core.Migration;
 
 namespace LinkManager.Gui;
 
@@ -21,6 +22,10 @@ public sealed class EntryRow
 
     public string StatusGlyph => EntryStatusVisual.Glyph(Status);
 
+    public Visibility RepairVisibility => RepairDialogLogic.CanRepair(Status)
+        ? Visibility.Visible
+        : Visibility.Collapsed;
+
     public Brush StatusBrush
     {
         get
@@ -33,8 +38,18 @@ public sealed class EntryRow
 
 public partial class MainWindow : Window
 {
-    public MainWindow()
+    private readonly string? _registryRoot;
+    private readonly IProcessProbe? _repairProcessProbe;
+
+    public MainWindow() : this(registryRoot: null, repairProcessProbe: null)
     {
+    }
+
+    /// <summary>测试/验证探针构造：登记表与进程探测均可注入，产品入口保持默认设置与真实护栏。</summary>
+    internal MainWindow(string? registryRoot, IProcessProbe? repairProcessProbe)
+    {
+        _registryRoot = registryRoot;
+        _repairProcessProbe = repairProcessProbe;
         InitializeComponent();
         Loaded += (_, _) => LoadRegistry();
     }
@@ -73,11 +88,40 @@ public partial class MainWindow : Window
 
     private void RefreshButton_Click(object sender, RoutedEventArgs e) => LoadRegistry();
 
+    private void RepairButton_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is not EntryRow row || !RepairDialogLogic.CanRepair(row.Status))
+        {
+            return;
+        }
+
+        var (title, message) = RepairDialogLogic.Confirmation(row.Entry);
+        if (!DialogMessage.Confirm(this, title, message))
+        {
+            return;
+        }
+
+        try
+        {
+            var result = LinkRepairer.Repair(row.Entry.Source, _registryRoot, _repairProcessProbe);
+            LoadRegistry();
+            DialogMessage.Show(this, DialogMessage.Kind.Success, "修复成功", RepairDialogLogic.Success(result.Entry));
+        }
+        catch (LinkRepairException ex)
+        {
+            DialogMessage.Show(this, DialogMessage.Kind.Warning, "无法修复断链", ex.Message);
+        }
+        catch (Exception ex)
+        {
+            DialogMessage.Show(this, DialogMessage.Kind.Error, "修复失败", ex.Message);
+        }
+    }
+
     private void LoadRegistry()
     {
         try
         {
-            var registry = LinkRegistry.Load();
+            var registry = LinkRegistry.Load(_registryRoot);
             var rows = registry.Entries
                 .Select(e => new EntryRow { Entry = e, Status = LinkHealth.Check(e.Source, e.Type) })
                 .ToList();

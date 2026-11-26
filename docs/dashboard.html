@@ -53,6 +53,16 @@
   </div>
 
   <div class="current">
+    <h2>当前版本 v1.1.0（断链一键修复）可测试清单</h2>
+    <ul>
+      <li><span class="st ok">✅</span><b>按登记重建断链</b>：断链且真实数据目录仍在时，可按已登记的 junction / symlink 类型原位重建；登记、目标、链接位置占用和受关注进程均先校验，拒绝时给中文原因。</li>
+      <li><span class="st ok">✅</span><b>CLI repair</b>：<code>repair &lt;源路径&gt; --registry &lt;根目录&gt; --json</code> 非交互执行；JSON 包络 <code>command=repair</code>，成功返回即时健康状态，失败返回 exit 1/2 与中文原因。</li>
+      <li><span class="st ok">✅</span><b>GUI 行内修复</b>：仅红色「✗ 断链」行显示「修复」按钮；确认对话框展示登记源/目标/类型，成功后刷新健康检查并以统一 DialogMessage 反馈。</li>
+      <li><span class="st warn">🔶</span><b>发布产物实测与截图</b>：待在一次性 settings.json / <code>--registry</code> 沙箱完成，绝不访问真实 AppData 登记表。</li>
+    </ul>
+  </div>
+
+  <div class="current">
     <h2>当前版本 v1.0.7（GUI 重设计，PR #21）可测试清单</h2>
     <ul>
       <li><span class="st ok">✅</span><b>主窗口视觉重组</b>：顶部工具栏四入口（迁移向导默认强调/创建/扫描/刷新健康检查）+ 全宽列式登记列表 + 空状态引导层 <small>— 实测 2026-11-26（publish 产物 + 沙箱登记表）：空状态指路向导/创建/扫描；带数据态 ✓绿正常/✗红断链 图标+配色状态列</small></li>

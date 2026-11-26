@@ -244,7 +244,10 @@ public static class CliJson
     /// 曾误用 create 包络，agent 按 .command 判读会拿到错误命令名）。</summary>
     public static CliEnvelope<CliLinkEntry> Note(LinkEntry entry) => EntryEnvelope("note", entry);
 
-    /// <summary>条目型包络（create/note 共用形状，仅 command 不同）。</summary>
+    /// <summary>repair 的结构化结果：重建后的登记条目及即时健康状态。</summary>
+    public static CliEnvelope<CliLinkEntry> Repair(LinkEntry entry) => EntryEnvelope("repair", entry);
+
+    /// <summary>条目型包络（create/note/repair 共用形状，仅 command 不同）。</summary>
     private static CliEnvelope<CliLinkEntry> EntryEnvelope(string command, LinkEntry entry) => new()
     {
         Ok = true,
