@@ -18,10 +18,16 @@ public partial class MigrationWizardWindow : Window
 {
     private readonly MigrationWizardModel _model;
 
-    public MigrationWizardWindow()
+    public MigrationWizardWindow() : this(probe: null)
+    {
+    }
+
+    /// <summary>probe 注入构造（测试/探针用）：预览护栏与执行基准用同一注入探测，不真扫描本机进程；
+    /// registryRoot 把登记读写重定向到指定根（默认产品设置）。</summary>
+    internal MigrationWizardWindow(Core.Migration.IProcessProbe? probe, string? registryRoot = null)
     {
         InitializeComponent();
-        _model = new MigrationWizardModel();
+        _model = new MigrationWizardModel(registryRoot: registryRoot, probe: probe);
         ShowStep();
     }
 
@@ -308,4 +314,10 @@ public partial class MigrationWizardWindow : Window
 
     /// <summary>冒烟探针入口：以编程方式推进向导（仅测试工程/探针使用）。</summary>
     internal void RaiseNext() => NextButton_Click(this, new RoutedEventArgs());
+
+    /// <summary>测试/探针缝：注入探测与执行委托（v1.0.7 phase2 截第 4/5 步视觉用）。</summary>
+    internal void RefreshVisualForProbe() => ShowStep();
+
+    /// <summary>测试/探针缝：读取内部状态机（InternalsVisibleTo 工程可断言/推进步骤）。</summary>
+    internal MigrationWizardModel ModelForProbe => _model;
 }
