@@ -44,6 +44,22 @@ public partial class DialogMessage : Window
     public static void Show(Kind kind, string title, string detail)
         => Show(Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive), kind, title, detail);
 
+    /// <summary>以统一 Fluent 风格展示确认对话框；确认返回 true。</summary>
+    public static bool Confirm(Window? owner, string title, string detail)
+    {
+        var dialog = new DialogMessage
+        {
+            Title = title,
+            Owner = owner,
+            MessageTitle = title,
+            MessageDetail = detail,
+            Accent = ((Color)ColorConverter.ConvertFromString("#0067C0"), "?", "#EFF6FF", "#BBD8F5"),
+        };
+        dialog.OkButton.Content = "修复";
+        dialog.CancelButton.Visibility = Visibility.Visible;
+        return dialog.ShowDialog() == true;
+    }
+
     public string MessageTitle
     {
         get => TitleText.Text;
@@ -60,6 +76,8 @@ public partial class DialogMessage : Window
     internal (Color bar, string glyph, string cardBg, string cardBorder)? Accent { get; set; }
 
     private void OkButton_Click(object sender, RoutedEventArgs e) => DialogResult = true;
+
+    private void CancelButton_Click(object sender, RoutedEventArgs e) => DialogResult = false;
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {

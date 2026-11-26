@@ -27,7 +27,7 @@ if (args.Length == 0)
 {
     // 交互向导是后续工单范围；当前无参数时打印帮助立即退出，绝不挂起等待输入。
     Console.WriteLine($"{AppInfo.Name} {AppInfo.Version}");
-    Console.WriteLine("当前可用命令：version, ls, create, scan, migrate, config, note, remove, help（通用选项：--json, --registry <根目录>）");
+    Console.WriteLine("当前可用命令：version, ls, create, scan, repair, migrate, config, note, remove, help（通用选项：--json, --registry <根目录>）");
     return 0;
 }
 
@@ -54,6 +54,9 @@ try
 
         case "scan":
             return RunScan(options.Positional, options.CommandFlags, options.CommandFlagValues, options.Json, options.RegistryRoot);
+
+        case "repair":
+            return RunRepair(options.Positional, options.Json, options.RegistryRoot);
 
         case "help" or "--help" or "-h":
             return RunHelp(options.Json);
@@ -104,6 +107,10 @@ catch (RegistryMigrationException ex)
     return 3;
 }
 catch (LinkCreateException ex)
+{
+    return Fail(options.Json, commandName, ExitCodes.ExecutionFailed, ex.Message);
+}
+catch (LinkRepairException ex)
 {
     return Fail(options.Json, commandName, ExitCodes.ExecutionFailed, ex.Message);
 }
@@ -199,6 +206,26 @@ static int RunCreate(IReadOnlyList<string> positional, IReadOnlyList<string> com
         return Fail(json, "create", ExitCodes.UserError, $"创建被拒绝：{ex.Message}");
     }
 }
+static int RunRepair(IReadOnlyList<string> positional, bool json, string? registryRoot)
+{
+    if (positional.Count != 1)
+    {
+        return Fail(json, "repair", ExitCodes.UserError, "用法：repair <源路径> [--json] [--registry <根目录>]");
+    }
+
+    var result = LinkRepairer.Repair(positional[0], registryRoot);
+    if (json)
+    {
+        Console.WriteLine(CliJson.Serialize(CliJson.Repair(result.Entry)));
+    }
+    else
+    {
+        Console.WriteLine($"修复成功：已重建 {result.Entry.Type}：{result.Entry.Source} → {result.Entry.Target}（健康检查正常）");
+    }
+
+    return ExitCodes.Success;
+}
+
 /// <summary>scan 子命令（issue #15）：扫描目录树发现存量 junction/symlink。
 /// --yes 非交互全量导入；默认交互模式逐条问询「要登记吗」（stdin 不可读时自动降级为只报告，
 /// 绝不挂起——非交互保证）。退出码：1 用法错误；2 目录不存在；3 登记表错误（全局捕获）。</summary>
@@ -363,6 +390,7 @@ static int RunHelp(bool json)
                 new { name = "ls", description = "列出登记链接与健康状态" },
                 new { name = "create", description = "创建 junction 并自动登记" },
                 new { name = "scan", description = "扫描目录树发现存量链接并问询登记（--yes 全量导入）" },
+                new { name = "repair", description = "按登记表重建断链" },
                 new { name = "note", description = "更新登记条目备注" },
                 new { name = "remove", description = "删除登记条目（--delete-link 连链接一起删）" },
                 new { name = "config", description = "显示/迁移登记文件位置" },
@@ -381,6 +409,7 @@ static int RunHelp(bool json)
     Console.WriteLine("  ls                 列出登记链接与健康状态");
     Console.WriteLine("  create <源> <目标> [备注]  创建 junction 并自动登记");
     Console.WriteLine("  scan <目录> [--yes] [--max-depth <层数>]  扫描存量链接并问询登记（--yes 全量导入）");
+    Console.WriteLine("  repair <源>       按登记表重建断链（不删除真实数据）");
     Console.WriteLine("  note <源> <新备注>  更新登记条目备注");
     Console.WriteLine("  remove <源> --keep-link | --delete-link [--yes]  删除登记条目/连链接");
     Console.WriteLine("  config | config set-registry <路径>  显示/迁移登记文件位置");
@@ -696,6 +725,7 @@ internal static class CliCommandFlags
             ["migrate"] = NewSet("--execute"),
             ["remove"] = NewSet("--keep-link", "--delete-link", "--yes"),
             ["scan"] = NewSet("--yes"),
+            ["repair"] = NewSet(),
             ["config"] = NewSet(),
             ["note"] = NewSet(),
             ["version"] = NewSet(),

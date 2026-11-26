@@ -9,7 +9,34 @@ namespace LinkManager.Gui.Tests;
 /// </summary>
 public class Phase2VisualLogicTests
 {
-    // ---- EntryStatusVisual：状态列图标 + 颜色 ----
+    // ---- 断链修复入口：状态判断与确认文案 ----
+
+    [Theory]
+    [InlineData(LinkStatus.Ok, false)]
+    [InlineData(LinkStatus.Broken, true)]
+    [InlineData(LinkStatus.Missing, false)]
+    [InlineData(LinkStatus.Disguised, false)]
+    public void Repair_is_available_only_for_broken_links(LinkStatus status, bool expected)
+        => Assert.Equal(expected, RepairDialogLogic.CanRepair(status));
+
+    [Fact]
+    public void Repair_confirmation_shows_registered_source_target_and_type()
+    {
+        var entry = new LinkManager.Core.Registry.LinkEntry
+        {
+            Source = @"C:\\链接处",
+            Target = @"D:\\真实数据",
+            Type = "junction",
+        };
+
+        var confirmation = RepairDialogLogic.Confirmation(entry);
+
+        Assert.Equal("确认修复断链", confirmation.Title);
+        Assert.Contains(entry.Source, confirmation.Message);
+        Assert.Contains(entry.Target, confirmation.Message);
+        Assert.Contains(entry.Type, confirmation.Message);
+    }
+
 
     [Theory]
     [InlineData(LinkStatus.Ok, "✓")]

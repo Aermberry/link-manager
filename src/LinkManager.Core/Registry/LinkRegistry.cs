@@ -181,8 +181,9 @@ public sealed class LinkRegistry
         }
 
         // 归一化分隔符方向后再比（Path.GetFullPath 不改分隔符，需手动统一）
+        var normalizedEntry = entry.Source.Replace('/', '\\');
         var normalized = source.Replace('/', '\\');
-        return string.Equals(entry.Source, normalized, StringComparison.OrdinalIgnoreCase);
+        return string.Equals(normalizedEntry, normalized, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>在指定路径写入一个空登记表文件（覆盖已有内容）。供 Load 与迁移器使用。</summary>

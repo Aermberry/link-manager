@@ -2,7 +2,6 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="link-manager — 链接管理" Height="600" Width="1000" MinHeight="420" MinWidth="720"
-        Icon="pack://application:,,,/app.ico"
         Background="#FAFAFB"
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Ideal">
@@ -70,7 +69,7 @@
                       BorderThickness="1" BorderBrush="{StaticResource CardBorderBrush}">
                 <ListView.View>
                     <GridView>
-                        <GridViewColumn Header="状态" Width="110">
+                        <GridViewColumn Header="状态" Width="175">
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal">
@@ -78,6 +77,9 @@
                                                    Foreground="{Binding StatusBrush}" Margin="0,0,6,0" />
                                         <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold"
                                                    Foreground="{Binding StatusBrush}" />
+                                        <Button Content="修复" Margin="8,0,0,0" Padding="8,2" FontSize="12"
+                                                Visibility="{Binding RepairVisibility}" Click="RepairButton_Click"
+                                                Tag="{Binding}" Cursor="Hand" />
                                     </StackPanel>
                                 </DataTemplate>
                             </GridViewColumn.CellTemplate>
