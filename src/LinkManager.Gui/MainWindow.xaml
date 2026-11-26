@@ -1,71 +1,111 @@
 ﻿<Window x:Class="LinkManager.Gui.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="link-manager — 链接管理" Height="560" Width="960"
-        Icon="pack://application:,,,/app.ico">
-    <Grid Margin="12">
+        Title="link-manager — 链接管理" Height="600" Width="1000" MinHeight="420" MinWidth="720"
+        Icon="pack://application:,,,/app.ico"
+        Background="#FAFAFB"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Ideal">
+    <Window.Resources>
+        <!-- Fluent 浅色基础色板（Phase 1：先于框架升级手调，后续可换 WPF 主题库） -->
+        <SolidColorBrush x:Key="AccentBrush" Color="#0067C0" />
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="#1975C5" />
+        <SolidColorBrush x:Key="AccentPressedBrush" Color="#005BA1" />
+        <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="CardBorderBrush" Color="#E0E0E3" />
+        <SolidColorBrush x:Key="SubtleTextBrush" Color="#5D5D63" />
+
+        <!-- 顶部入口按钮：默认强调（迁移向导）/ 次级（其余） -->
+        <Style x:Key="EntryButtonBase" TargetType="Button">
+            <Setter Property="Padding" Value="16,7" />
+            <Setter Property="Margin" Value="0,0,10,0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style x:Key="PrimaryEntryButton" TargetType="Button" BasedOn="{StaticResource EntryButtonBase}">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="SecondaryEntryButton" TargetType="Button" BasedOn="{StaticResource EntryButtonBase}">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="#1B1B1F" />
+            <Setter Property="BorderBrush" Value="#C9C9CF" />
+        </Style>
+
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="已登记链接" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <!-- 顶部工具栏：四个入口，迁移向导为默认强调 -->
+        <Border Grid.Row="0" Background="#FFFFFF" BorderBrush="#E5E5E8" BorderThickness="0,0,0,1" Padding="14,10">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="WizardButton" Style="{StaticResource PrimaryEntryButton}"
+                        Content="迁移向导…" Click="WizardButton_Click" />
+                <Button x:Name="CreateButton" Style="{StaticResource SecondaryEntryButton}"
+                        Content="创建" Click="CreateButton_Click" />
+                <Button x:Name="ScanButton" Style="{StaticResource SecondaryEntryButton}"
+                        Content="扫描" Click="ScanButton_Click" />
+                <Button x:Name="RefreshButton" Style="{StaticResource SecondaryEntryButton}"
+                        Content="刷新健康检查" Click="RefreshButton_Click" />
+            </StackPanel>
+        </Border>
 
-        <TextBlock Grid.Row="1" Text="创建 junction" FontWeight="SemiBold" Margin="0,0,0,4" />
-        <TextBlock Grid.Row="2" Foreground="Gray" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,6"
-                   Text="数据已搬到新位置？填入链接处（源）与新位置（目标），直接创建链接，不搬数据。数据还在原地要搬走 → 用下方「迁移向导」。" />
+        <!-- 全宽登记列表（列表信息布局为列式）；空状态与列表同层叠放 -->
+        <Grid Grid.Row="1" Margin="14,12,14,10">
+            <ListView x:Name="EntriesList"
+                      BorderThickness="1" BorderBrush="{StaticResource CardBorderBrush}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="状态" Width="110">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding StatusGlyph}" FontWeight="Bold"
+                                                   Foreground="{Binding StatusBrush}" Margin="0,0,6,0" />
+                                        <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold"
+                                                   Foreground="{Binding StatusBrush}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="链接位置（源）" Width="280" DisplayMemberBinding="{Binding Source}" />
+                        <GridViewColumn Header="数据真实位置（目标）" Width="280" DisplayMemberBinding="{Binding Target}" />
+                        <GridViewColumn Header="类型" Width="80" DisplayMemberBinding="{Binding Type}" />
+                        <GridViewColumn Header="备注" Width="220" DisplayMemberBinding="{Binding Note}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
 
-        <Grid Grid.Row="3" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="源：" VerticalAlignment="Center" Margin="0,0,4,0" />
-            <TextBox Grid.Row="0" Grid.Column="1" x:Name="SourcePathInput" Margin="0,0,12,0" />
-            <TextBlock Grid.Row="0" Grid.Column="2" Text="目标：" VerticalAlignment="Center" Margin="0,0,4,0" />
-            <TextBox Grid.Row="0" Grid.Column="3" x:Name="TargetPathInput" />
-
-            <TextBlock Grid.Row="1" Grid.Column="0" Text="备注：" VerticalAlignment="Center" Margin="0,6,4,0" />
-            <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" x:Name="NoteInput" Margin="0,6,0,0" />
+            <!-- 空状态：无登记条目时盖在列表上方（引导去向导/创建/扫描） -->
+            <Border x:Name="EmptyState" Background="#FFFFFF" BorderBrush="{StaticResource CardBorderBrush}"
+                    BorderThickness="1" CornerRadius="8" Visibility="Collapsed">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="560">
+                    <TextBlock Text="○" FontSize="34" Foreground="{StaticResource SubtleTextBrush}"
+                               HorizontalAlignment="Center" Margin="0,0,0,10" />
+                    <TextBlock Text="还没有登记任何链接" FontSize="15" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" Margin="0,0,0,8" />
+                    <TextBlock Foreground="{StaticResource SubtleTextBrush}" TextWrapping="Wrap" TextAlignment="Center"
+                               HorizontalAlignment="Center" Margin="0,0,0,14"
+                               Text="把 C 盘目录搬到其他盘 → 用「迁移向导」（原位置自动变成链接）；数据已在新位置、只差一个链接 → 用「创建」；想找出电脑里已有的 junction / symlink → 用「扫描」。" />
+                </StackPanel>
+            </Border>
         </Grid>
 
-        <StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,8">
-            <Button x:Name="WizardButton" Content="迁移向导…" Padding="14,4" Margin="0,0,8,0" IsDefault="True" Click="WizardButton_Click" />
-            <Button x:Name="CreateButton" Content="创建" Padding="14,4" Margin="0,0,8,0" Click="CreateButton_Click" />
-            <Button x:Name="RefreshButton" Content="刷新健康检查" Padding="10,4" />
-        </StackPanel>
-
-        <ListView Grid.Row="5" x:Name="EntriesList">
-            <ListView.View>
-                <GridView>
-                    <GridViewColumn Header="状态" Width="90">
-                        <GridViewColumn.CellTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusBrush}" FontWeight="SemiBold" />
-                            </DataTemplate>
-                        </GridViewColumn.CellTemplate>
-                    </GridViewColumn>
-                    <GridViewColumn Header="源路径" Width="260" DisplayMemberBinding="{Binding Source}" />
-                    <GridViewColumn Header="目标路径" Width="260" DisplayMemberBinding="{Binding Target}" />
-                    <GridViewColumn Header="类型" Width="80" DisplayMemberBinding="{Binding Type}" />
-                    <GridViewColumn Header="备注" Width="200" DisplayMemberBinding="{Binding Note}" />
-                </GridView>
-            </ListView.View>
-        </ListView>
-
-        <StatusBar Grid.Row="6">
+        <StatusBar Grid.Row="2" Background="#F3F3F6" BorderBrush="#E0E0E3" BorderThickness="0,1,0,0">
             <StatusBarItem>
                 <TextBlock x:Name="StatusText" Text="就绪" />
             </StatusBarItem>

@@ -53,7 +53,33 @@
   </div>
 
   <div class="current">
-    <h2>当前版本 v1.0.6 可测试清单</h2>
+    <h2>当前版本 v1.0.7（GUI 重设计，PR #21）可测试清单</h2>
+    <ul>
+      <li><span class="st ok">✅</span><b>主窗口视觉重组</b>：顶部工具栏四入口（迁移向导默认强调/创建/扫描/刷新健康检查）+ 全宽列式登记列表 + 空状态引导层 <small>— 实测 2026-11-26（publish 产物 + 沙箱登记表）：空状态指路向导/创建/扫描；带数据态 ✓绿正常/✗红断链 图标+配色状态列</small></li>
+      <li><span class="st ok">✅</span><b>健康检查状态列 Fluent 化</b>：✓ 正常（绿）/ ✗ 断链（红）/ ⚠ 缺失（橙）/ ◇ 伪装（灰），映射纯函数 <code>EntryStatusVisual</code> <small>— 实测 2026-11-26：目标目录改名→「✗ 断链 · 1 条异常」，改回→「✓ 正常」，往返真跑</small></li>
+      <li><span class="st ok">✅</span><b>扫描对话框空状态</b>：未扫描（引导去扫）与扫完无结果（「该目录下没有待登记的链接」）两态；发现条目态复测通过（登记→空态+已登记 N 条）</li>
+      <li><span class="st ok">✅</span><b>统一风格消息弹窗 DialogMessage</b>：错误红/警告橙/提示蓝/成功绿 左色条+图标，替换全部裸 MessageBox <small>— 视觉层重构，行为不变</small></li>
+      <li><span class="st ok">✅</span><b>向导第 4/5 步视觉补齐</b>：执行中危险红横幅+进度条（第 4 步）、结果步成功绿横幅+完整摘要（第 5 步）<small>— 实测 2026-11-26：注入探测驱动真窗口走 3→4→5 步截图验证；本机 magpie/OpenMausBot 运行中真迁移被护栏阻断属按设计行为</small></li>
+      <li><span class="st ok">✅</span><b>扫描 GUI 入口</b>（phase1）：选目录/深度可选/勾选批量登记，已登记不重复列出 <small>— phase2 复测：发现 1 条未登记 junction → 登记成功 → 主窗口 3 条</small></li>
+      <li><span class="st ok">✅</span><b>CLI note --json 信封修复</b>（phase1）：command 字段 create→note，回归测试在位</li>
+      <li><span class="st warn">🔶</span><b>向导真迁移执行链路</b>：第 4/5 步视觉已验证（注入执行），真 robocopy 链路因本机护栏进程运行中未走（按设计拒绝，与 v1.0.6 一致）</li>
+      <li>
+        截图（docs/screenshots/v1.0.7-phase2/）：
+        <div>
+          <img src="screenshots/v1.0.7-phase2/main-window-empty.png" alt="主窗口空状态" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+          <img src="screenshots/v1.0.7-phase2/main-window-with-data.png" alt="主窗口带数据（✓绿正常）" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+          <img src="screenshots/v1.0.7-phase2/main-window-broken.png" alt="健康检查断链态（✗红）" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+          <img src="screenshots/v1.0.7-phase2/scan-dialog-empty.png" alt="扫描空状态（未扫描引导）" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+          <img src="screenshots/v1.0.7-phase2/scan-dialog-found.png" alt="扫描发现条目" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+          <img src="screenshots/v1.0.7-phase2/wizard-step4-executing.png" alt="向导第4步执行中" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+          <img src="screenshots/v1.0.7-phase2/wizard-step5-result-success.png" alt="向导第5步成功横幅" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="current">
+    <h2>v1.0.6 可测试清单（上一版）</h2>
     <ul>
       <li><span class="st ok">✅</span><b>迁移向导</b>（GUI 5 步）：选源 → 选目标 → 预览 dry-run 计划 → 执行 → 结果；失败自动回滚 <small>— 主路径，搬家用这个</small><br><small>🔶 实测 2026-11-25（本机 scoop 1.0.6）：第 1/2/3 步真跑走通，预览完整呈现 dry-run 计划、护栏阻断原因中文展示、「确认执行」真实禁用；第 4/5 步因本机 magpie/OpenMausBot 运行中被护栏拒绝（按设计，未绕过）——见下方实测报告</small></li>
       <li><span class="st ok">✅</span><b>创建 junction</b>（GUI 表单）：数据已在新位置时直接建链接并登记，不搬数据 <small>— 表单上方有分工说明</small><br><small>✅ 实测 2026-11-25：创建+登记真跑通过；发现表单提示与实现语义相反（照提示填必报「源路径不存在」），见实测报告</small></li>
@@ -67,7 +93,7 @@
 
   <div class="ver">
     <div class="ver-head">
-      <span class="tag">v1.0.6 实测报告</span><span class="badge">2026-11-25</span>
+      <span class="tag">v1.0.7 实测报告（phase2 全量实现收尾）</span><span class="badge">2026-11-26</span>
       <span class="date">本机 scoop 安装 1.0.6 真跑 · 测试数据全部落在一次性目录并已清理 · 真实登记表实测前后均为空表（sha256 9e402c89…）</span>
     </div>
     <ul>
@@ -95,7 +121,7 @@
 
   <div class="ver">
     <div class="ver-head">
-      <span class="tag">v1.0.6</span><span class="badge latest">当前</span>
+      <span class="tag">v1.0.6</span><span class="badge">上一版</span>
       <span class="date">2026-11-24</span>
       <a class="badge" href="https://github.com/Aermberry/link-manager/releases/tag/v1.0.6">Release</a>
     </div>

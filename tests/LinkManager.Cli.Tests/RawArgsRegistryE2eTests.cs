@@ -54,6 +54,23 @@ public class RawArgsRegistryE2eTests : IDisposable
     }
 
     [Fact]
+    public void Note_json_envelope_is_labeled_note_not_create()
+    {
+        // 回归（v1.0.6 实测发现）：note 的 --json 信封曾误标 "command":"create"
+        // （RunNote 复用 CliJson.Create）。约定（docs/cli-conventions.md）：
+        // 信封 command 字段 = 命令名，agent 按 .command 判读。
+        var source = SeedRegistry();
+
+        var run = CliE2e.Run("note", source, "测试备注", "--registry", _registryRoot, "--json");
+
+        Assert.Equal(0, run.ExitCode);
+        using var doc = run.Json();
+        Assert.True(doc.RootElement.GetProperty("ok").GetBoolean());
+        Assert.Equal("note", doc.RootElement.GetProperty("command").GetString());
+        Assert.Equal("测试备注", doc.RootElement.GetProperty("data").GetProperty("note").GetString());
+    }
+
+    [Fact]
     public void Remove_entry_only_respects_the_sandbox_registry()
     {
         // 回归：remove 曾用 LinkRegistry.Load()——沙箱 --registry 被无视，会删真实登记表条目
