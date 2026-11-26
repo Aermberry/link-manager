@@ -2,7 +2,6 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="link-manager — 链接管理" Height="600" Width="1000" MinHeight="420" MinWidth="720"
-        Icon="pack://application:,,,/app.ico"
         Background="#FAFAFB"
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Ideal">

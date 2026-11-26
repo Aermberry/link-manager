@@ -55,10 +55,14 @@
   <div class="current">
     <h2>当前版本 v1.1.0（断链一键修复）可测试清单</h2>
     <ul>
-      <li><span class="st ok">✅</span><b>按登记重建断链</b>：断链且真实数据目录仍在时，可按已登记的 junction / symlink 类型原位重建；登记、目标、链接位置占用和受关注进程均先校验，拒绝时给中文原因。</li>
-      <li><span class="st ok">✅</span><b>CLI repair</b>：<code>repair &lt;源路径&gt; --registry &lt;根目录&gt; --json</code> 非交互执行；JSON 包络 <code>command=repair</code>，成功返回即时健康状态，失败返回 exit 1/2 与中文原因。</li>
+      <li><span class="st ok">✅</span><b>按登记重建断链</b>：断链且真实数据目录仍在时，可按已登记的 junction / symlink 类型原位重建；登记、目标、链接位置占用和受关注进程均先校验，拒绝时给中文原因。<small>— 真窗口探针以无占用 IProcessProbe 驱动：断链红标 → 确认 → 修复成功 → 健康恢复绿标。</small></li>
+      <li><span class="st ok">✅</span><b>CLI repair</b>：<code>repair &lt;源路径&gt; --registry &lt;根目录&gt; --json</code> 非交互执行；JSON 包络 <code>command=repair</code>，成功返回即时健康状态，失败返回 exit 1/2 与中文原因。<small>— 发布版 CLI 沙箱检测到 magpie/OpenMausBot 后按设计返回 exit 2。</small></li>
       <li><span class="st ok">✅</span><b>GUI 行内修复</b>：仅红色「✗ 断链」行显示「修复」按钮；确认对话框展示登记源/目标/类型，成功后刷新健康检查并以统一 DialogMessage 反馈。</li>
-      <li><span class="st warn">🔶</span><b>发布产物实测与截图</b>：待在一次性 settings.json / <code>--registry</code> 沙箱完成，绝不访问真实 AppData 登记表。</li>
+      <li>截图（<code>docs/screenshots/v1.1.0-repair/</code>）：<div>
+        <img src="screenshots/v1.1.0-repair/main-window-broken.png" alt="断链状态与修复按钮" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+        <img src="screenshots/v1.1.0-repair/repair-confirm-dialog.png" alt="修复确认对话框" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+        <img src="screenshots/v1.1.0-repair/main-window-repaired.png" alt="修复后健康恢复" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
+      </div></li>
     </ul>
   </div>
 

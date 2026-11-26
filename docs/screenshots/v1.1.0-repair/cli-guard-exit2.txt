@@ -1,0 +1,12 @@
+Published CLI sandbox guard verification
+Expected: repair exit 2 while magpie/OpenMausBot are running.
+
+{"ok":true,"command":"create","data":{"source":"E:\\WorkSpace\\data_mover\\wolfeel\\repair-guard-z68oc1\\tree\\link","target":"E:\\WorkSpace\\data_mover\\wolfeel\\repair-guard-z68oc1\\tree\\real","type":"junction","note":"sandbox","status":"ok"}}
+create exit=0
+Microsoft Windows [Version 10.0.22631.6199]
+(c) Microsoft Corporation. All rights reserved.
+
+E:\WorkSpace\data_mover\wolfeel>{"ok":true,"command":"ls","data":{"entries":[{"source":"E:\\WorkSpace\\data_mover\\wolfeel\\repair-guard-z68oc1\\tree\\link","target":"E:\\WorkSpace\\data_mover\\wolfeel\\repair-guard-z68oc1\\tree\\real","type":"junction","note":"sandbox","status":"ok"}],"registry":{"path":"E:\\WorkSpace\\data_mover\\wolfeel\\repair-guard-z68oc1\\registry\\link-manager\\registry.json","entryCount":1,"abnormalCount":0}}}
+ls exit=0
+{"ok":false,"command":"repair","error":{"code":"execution_failed","message":"相关进程仍在运行，拒绝修复：magpie、OpenMausBot"}}
+repair exit=2
