@@ -33,8 +33,13 @@ jobs:
         run: dotnet test
 
       - name: Publish CLI single-file exe
+        # -p:Version=<tag minus v> stamps the assembly version so `link-manager
+        # version` / version --json match the Release tag; overrides the csproj
+        # local-default <Version>.
         if: startsWith(github.ref, 'refs/tags/')
-        run: dotnet publish src/LinkManager.Cli/LinkManager.Cli.csproj -c Release
+        run: >-
+          dotnet publish src/LinkManager.Cli/LinkManager.Cli.csproj -c Release
+          -p:Version=$("${{ github.ref_name }}" -replace '^v', '')
 
       - name: Publish GUI single-file exe
         # GUI csproj has no publish profile; all single-file flags come from the
@@ -48,6 +53,7 @@ jobs:
           dotnet publish src/LinkManager.Gui/LinkManager.Gui.csproj -c Release
           -r win-x64 --self-contained true
           -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
+          -p:Version=$("${{ github.ref_name }}" -replace '^v', '')
 
       - name: Name asset for the tag
         # GUI ships as a zip: the IJW workaround (dotnet/wpf#11842) publishes
