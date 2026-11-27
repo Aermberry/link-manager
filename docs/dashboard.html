@@ -58,6 +58,7 @@
       <li><span class="st ok">✅</span><b>按登记重建断链</b>：断链且真实数据目录仍在时，可按已登记的 junction / symlink 类型原位重建；登记、目标、链接位置占用和受关注进程均先校验，拒绝时给中文原因。<small>— 真窗口探针以无占用 IProcessProbe 驱动：断链红标 → 确认 → 修复成功 → 健康恢复绿标。</small></li>
       <li><span class="st ok">✅</span><b>CLI repair</b>：<code>repair &lt;源路径&gt; --registry &lt;根目录&gt; --json</code> 非交互执行；JSON 包络 <code>command=repair</code>，成功返回即时健康状态，失败返回 exit 1/2 与中文原因。<small>— 发布版 CLI 沙箱检测到 magpie/OpenMausBot 后按设计返回 exit 2。</small></li>
       <li><span class="st ok">✅</span><b>GUI 行内修复</b>：仅红色「✗ 断链」行显示「修复」按钮；确认对话框展示登记源/目标/类型，成功后刷新健康检查并以统一 DialogMessage 反馈。</li>
+      <li><span class="st warn">🔶</span><b>版本号修复（PR #23）</b>：v1.1.0 起 <code>version</code> 误报 1.0.0（csproj 无 Version 属性的历史遗留）；已改为 Release CI 从 tag 注入程序集版本 + csproj 本地默认，本地注入干跑验证通过。<small>— 修复随下一版发布生效。</small></li>
       <li>截图（<code>docs/screenshots/v1.1.0-repair/</code>）：<div>
         <img src="screenshots/v1.1.0-repair/main-window-broken.png" alt="断链状态与修复按钮" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
         <img src="screenshots/v1.1.0-repair/repair-confirm-dialog.png" alt="修复确认对话框" style="height:110px;border:1px solid var(--line);border-radius:6px;margin:4px 6px 0 0;vertical-align:top">
