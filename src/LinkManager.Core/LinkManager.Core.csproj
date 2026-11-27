@@ -1,6 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <!-- 本地构建默认版本；Release CI 打 tag 时用 -p:Version=<tag 去掉 v> 覆盖（见 .github/workflows/release.yml）。
+         没有此属性时程序集版本恒为 1.0.0，AppInfo.Version（version 命令）随之失真。 -->
+    <Version>1.1.0</Version>
     <TargetFramework>net11.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

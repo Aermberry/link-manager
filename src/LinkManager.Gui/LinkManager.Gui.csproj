@@ -10,6 +10,8 @@
   </ItemGroup>
 
   <PropertyGroup>
+    <!-- 本地构建默认版本；Release CI 打 tag 时用 -p:Version=<tag 去掉 v> 覆盖（见 .github/workflows/release.yml）。 -->
+    <Version>1.1.0</Version>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net11.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
